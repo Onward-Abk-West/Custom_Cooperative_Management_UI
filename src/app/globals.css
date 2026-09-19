@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fbf5e6;
+  --foreground: #2b2117;
+
+  /* Cooperative brand palette — warm, "classic" institutional feel
+     rather than a generic SaaS blue/purple. Green = the land/societies,
+     gold = harvest/savings, cream = paper/ledger. */
+  --brand-green: #2f5230;
+  --brand-green-dark: #1f3a20;
+  --brand-gold: #d98c1f;
+  --brand-gold-dark: #b9791c;
+  --brand-cream: #fbf5e6;
+  --brand-ink: #2b2117;
+  --brand-line: #e4d6b3;
+
+  /* Glass surfaces — used over the CooperativeScene illustration (the
+     splash and login screens) and the app-shell header. Frosted panes
+     read as "glass" only with something visible moving behind them, so
+     these stay translucent rather than becoming solid brand-cream. */
+  --glass-surface: rgba(255, 255, 255, 0.4);
+  --glass-surface-strong: rgba(255, 255, 255, 0.62);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --glass-highlight: rgba(255, 255, 255, 0.85);
+  --glass-shadow: rgba(43, 33, 23, 0.28);
+  --glass-input: rgba(255, 255, 255, 0.38);
+  --glass-input-border: rgba(255, 255, 255, 0.5);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand-green: var(--brand-green);
+  --color-brand-green-dark: var(--brand-green-dark);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-gold-dark: var(--brand-gold-dark);
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-line: var(--brand-line);
+  --color-glass-surface: var(--glass-surface);
+  --color-glass-border: var(--glass-border);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-heading);
+}
+
+/*
+ * Night theme.
+ *
+ * ThemeToggle (src/components/ThemeToggle.tsx) sets data-theme="light"
+ * or data-theme="dark" on <html> and remembers the choice. Until a
+ * visitor picks one, the OS-level preference decides — the media-query
+ * block below, guarded by :not([data-theme="light"]) so an explicit
+ * light choice always wins over a dark OS. The [data-theme="dark"]
+ * block repeats the same tokens so the toggle also wins over a light
+ * OS. Every color a component uses comes from these tokens, never a
+ * literal, so nothing needs its own dark-mode variant.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #17130c;
+    --foreground: #f3ead2;
+    --brand-green: #5a8a5c;
+    --brand-green-dark: #3f6b41;
+    --brand-gold: #eab04a;
+    --brand-gold-dark: #ce9333;
+    --brand-cream: #241c12;
+    --brand-ink: #f3ead2;
+    --brand-line: #4a3c26;
+
+    --glass-surface: rgba(23, 19, 12, 0.42);
+    --glass-surface-strong: rgba(23, 19, 12, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.14);
+    --glass-highlight: rgba(255, 255, 255, 0.2);
+    --glass-shadow: rgba(0, 0, 0, 0.55);
+    --glass-input: rgba(255, 255, 255, 0.08);
+    --glass-input-border: rgba(255, 255, 255, 0.18);
+  }
+}
+
+:root[data-theme="dark"] {
+  --background: #17130c;
+  --foreground: #f3ead2;
+  --brand-green: #5a8a5c;
+  --brand-green-dark: #3f6b41;
+  --brand-gold: #eab04a;
+  --brand-gold-dark: #ce9333;
+  --brand-cream: #241c12;
+  --brand-ink: #f3ead2;
+  --brand-line: #4a3c26;
+
+  --glass-surface: rgba(23, 19, 12, 0.42);
+  --glass-surface-strong: rgba(23, 19, 12, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-highlight: rgba(255, 255, 255, 0.2);
+  --glass-shadow: rgba(0, 0, 0, 0.55);
+  --glass-input: rgba(255, 255, 255, 0.08);
+  --glass-input-border: rgba(255, 255, 255, 0.18);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.font-heading {
+  font-family: var(--font-heading), Georgia, "Times New Roman", serif;
+}
+
+/* ---- Glassmorphism primitives ------------------------------------
+ * Plain CSS rather than stacked Tailwind utilities: the blur needs a
+ * -webkit- prefix for Safari, and the "glass" look is really three
+ * things moving together (translucent fill, soft border, diffuse
+ * shadow) that read as one material — easier to keep as one class
+ * than to re-compose correctly at every call site.
+ */
+.glass-panel {
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  box-shadow:
+    0 8px 32px var(--glass-shadow),
+    inset 0 1px 0 var(--glass-highlight);
+}
+
+.glass-bar {
+  background: var(--glass-surface-strong);
+  border-bottom: 1px solid var(--glass-border);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+.glass-input {
+  background: var(--glass-input);
+  border: 1px solid var(--glass-input-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-input::placeholder {
+  color: var(--foreground);
+  opacity: 0.5;
+}
+
+.glass-input:focus {
+  outline: none;
+  border-color: var(--brand-gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-gold) 30%, transparent);
+}
+
+.glass-chip {
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
