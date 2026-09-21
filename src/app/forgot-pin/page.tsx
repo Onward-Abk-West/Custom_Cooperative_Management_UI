@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { AuthCard } from "@/components/auth/AuthCard";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 /**
  * First-login / forgotten-PIN request screen.
@@ -17,6 +20,7 @@ import { AuthCard } from "@/components/auth/AuthCard";
  * — see the TODO below.
  */
 export default function ForgotPinPage() {
+  const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -24,9 +28,9 @@ export default function ForgotPinPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    // TODO: wire up to the PIN-reset-request endpoint once it exists.
-    // Expected shape: POST { identifier } -> creates a pending request
-    // that both the society's Supervisor and President must approve.
+    // TODO: apiPost("/auth/pin-reset-requests", { identifier }) once
+    // the backend endpoint exists — creates a pending request that
+    // both the society's Supervisor and President must approve.
     window.setTimeout(() => {
       setSubmitting(false);
       setSubmitted(true);
@@ -51,12 +55,13 @@ export default function ForgotPinPage() {
           this can take a little time, since it needs both approvals,
           not just one.
         </p>
-        <a
-          href="/login"
-          className="mt-8 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-green to-brand-green-dark px-4 py-3 text-center text-sm font-semibold text-brand-cream shadow-md transition hover:brightness-110"
+        <Button
+          type="button"
+          onClick={() => router.push("/login")}
+          className="mt-8"
         >
           Back to sign in
-        </a>
+        </Button>
       </AuthCard>
     );
   }
@@ -79,30 +84,22 @@ export default function ForgotPinPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
-        <div>
-          <label htmlFor="identifier" className="sr-only">
-            Email or phone number
-          </label>
-          <input
-            id="identifier"
-            name="identifier"
-            type="text"
-            autoComplete="username"
-            required
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="Email or phone number"
-            className="w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none placeholder:text-brand-ink/50 focus:border-brand-gold focus:bg-white focus:ring-2 focus:ring-brand-gold/30"
-          />
-        </div>
+        <Input
+          id="identifier"
+          name="identifier"
+          type="text"
+          label="Email or phone number"
+          hideLabel
+          autoComplete="username"
+          required
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
+          placeholder="Email or phone number"
+        />
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="mt-2 rounded-full bg-gradient-to-r from-brand-green to-brand-green-dark px-4 py-3 text-sm font-semibold text-brand-cream shadow-md transition hover:brightness-110 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={submitting} className="mt-2">
           {submitting ? "Sending…" : "Send reset request"}
-        </button>
+        </Button>
       </form>
 
       <p className="mt-6 text-center text-xs text-brand-ink/50">

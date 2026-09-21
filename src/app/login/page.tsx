@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import { AuthCard } from "@/components/auth/AuthCard";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 /**
  * Login screen. Layout only for now — submitting doesn't call the API
- * yet (there's no backend auth endpoint to call), but the form shape
- * matches the locked PRD decision: identifier is EMAIL OR PHONE NUMBER
- * (not a separate "username" concept), plus a PIN rather than a
- * password.
+ * yet (there's no backend auth endpoint to call — once there is, this
+ * becomes an apiPost("/auth/login", ...) from src/lib/api-client.ts),
+ * but the form shape matches the locked PRD decision: identifier is
+ * EMAIL OR PHONE NUMBER (not a separate "username" concept), plus a
+ * PIN rather than a password.
  */
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
@@ -18,7 +21,8 @@ export default function LoginPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    // TODO: wire up to the auth endpoint once it exists.
+    // TODO: apiPost("/auth/login", { identifier, pin }) once the
+    // backend endpoint exists.
     window.setTimeout(() => setSubmitting(false), 600);
   }
 
@@ -38,42 +42,35 @@ export default function LoginPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
-        <div>
-          <label htmlFor="identifier" className="sr-only">
-            Email or phone number
-          </label>
-          <input
-            id="identifier"
-            name="identifier"
-            type="text"
-            autoComplete="username"
-            required
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="Email or phone number"
-            className="w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none placeholder:text-brand-ink/50 focus:border-brand-gold focus:bg-white focus:ring-2 focus:ring-brand-gold/30"
-          />
-        </div>
+        <Input
+          id="identifier"
+          name="identifier"
+          type="text"
+          label="Email or phone number"
+          hideLabel
+          autoComplete="username"
+          required
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
+          placeholder="Email or phone number"
+        />
 
-        <div>
-          <label htmlFor="pin" className="sr-only">
-            PIN
-          </label>
-          <input
-            id="pin"
-            name="pin"
-            type="password"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={6}
-            autoComplete="current-password"
-            required
-            value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-            placeholder="PIN"
-            className="w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 tracking-[0.4em] text-sm text-brand-ink outline-none placeholder:tracking-normal placeholder:text-brand-ink/50 focus:border-brand-gold focus:bg-white focus:ring-2 focus:ring-brand-gold/30"
-          />
-        </div>
+        <Input
+          id="pin"
+          name="pin"
+          type="password"
+          label="PIN"
+          hideLabel
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={6}
+          autoComplete="current-password"
+          required
+          value={pin}
+          onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+          placeholder="PIN"
+          className="tracking-[0.4em] placeholder:tracking-normal"
+        />
 
         <div className="-mt-1 text-right">
           <a
@@ -84,13 +81,9 @@ export default function LoginPage() {
           </a>
         </div>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="mt-2 rounded-full bg-gradient-to-r from-brand-green to-brand-green-dark px-4 py-3 text-sm font-semibold text-brand-cream shadow-md transition hover:brightness-110 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={submitting} className="mt-2">
           {submitting ? "Signing in…" : "Log in"}
-        </button>
+        </Button>
       </form>
 
       <p className="mt-6 text-center text-xs text-brand-ink/50">

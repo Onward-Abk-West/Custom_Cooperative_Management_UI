@@ -1,21 +1,19 @@
-import { CooperativeMark } from "@/components/illustrations/CooperativeMark";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { AppNav } from "@/components/AppNav";
+import { AppShell } from "@/components/AppShell";
 import { getMockSession } from "@/lib/mock-session";
-import { ROLE_LABELS } from "@/lib/roles";
 
 /**
  * Shell for every authenticated route. The proxy already guarantees a
  * session cookie exists by the time a request reaches here — this
- * layout renders the surrounding chrome: a role-aware nav and, for
- * either superadmin role, a society context switcher (society data is
- * isolated per the PRD, so only a superadmin ever needs to move
- * between societies).
+ * layout's only job is reading the (mock, for now) session and
+ * handing it to AppShell, which owns the actual chrome: the
+ * collapsible sidebar, its role-aware nav and society switcher, and
+ * the mobile drawer. This file stays a server component so it can
+ * read the session directly; AppShell is the client component that
+ * needs interactive state (the mobile drawer's open/closed flag).
  *
  * `getMockSession()` stands in for a real session read until auth
  * exists — see its doc comment. Swapping it for the real thing later
- * shouldn't require touching AppNav or the roles config, only this
- * one call site.
+ * shouldn't require touching AppShell or Sidebar, only this call.
  */
 export default function AppLayout({
   children,
@@ -25,39 +23,13 @@ export default function AppLayout({
   const session = getMockSession();
 
   return (
-    <div className="min-h-screen bg-brand-cream">
-      <header className="border-b border-brand-line bg-white/70">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-          <div className="flex shrink-0 items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-green to-brand-gold-dark">
-              <CooperativeMark className="h-6 w-6" />
-            </div>
-            <span className="font-heading hidden text-sm font-bold text-brand-green sm:inline">
-              Onward Abeokuta-West
-            </span>
-          </div>
-
-          <AppNav
-            role={session.role}
-            societies={session.societies}
-            currentSocietyId={session.currentSocietyId}
-          />
-
-          <div className="flex shrink-0 items-center gap-3 border-l border-brand-line pl-3">
-            <div className="hidden text-right leading-tight sm:block">
-              <p className="text-sm font-medium text-brand-ink">
-                {session.name}
-              </p>
-              <p className="text-xs text-brand-ink/50">
-                {ROLE_LABELS[session.role]}
-              </p>
-            </div>
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
-    </div>
+    <AppShell
+      role={session.role}
+      societies={session.societies}
+      currentSocietyId={session.currentSocietyId}
+      userName={session.name}
+    >
+      {children}
+    </AppShell>
   );
 }

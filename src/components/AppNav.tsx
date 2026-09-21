@@ -73,7 +73,7 @@ export function AppNav({
             id="society-switcher"
             value={societyId}
             onChange={(e) => setSocietyId(e.target.value)}
-            className="rounded-full border border-brand-line bg-white px-3 py-1.5 text-sm font-medium text-brand-ink outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/30"
+            className="rounded-full border border-brand-line bg-brand-line/25 px-3 py-1.5 text-sm font-medium text-brand-ink outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/30"
           >
             {societies.map((society) => (
               <option key={society.id} value={society.id}>
