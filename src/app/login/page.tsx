@@ -44,6 +44,21 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Diagnostic: if this never appears in the console, the click isn't
+    // reaching this function at all (e.g. a stale/unhydrated bundle, or
+    // something else swallowing the submit) — everything below this line
+    // is irrelevant in that case. Safe to remove once login is confirmed
+    // working end-to-end on the live deployment.
+    console.log("[login] handleSubmit fired", {
+      hasIdentifier: identifier.trim().length > 0,
+      pinLength: pin.length,
+    });
+
+    if (!identifier.trim() || !pin.trim()) {
+      setError("Please enter both your email or phone number and PIN.");
+      return;
+    }
+
     setError(null);
     setSubmitting(true);
     try {
@@ -105,7 +120,16 @@ export default function LoginPage() {
         Use the email or phone number on your member record.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
+      {/*
+        noValidate: without this, the browser's own HTML5 "required"
+        check can block submission before onSubmit ever runs — no
+        console output, no network request, just a small native tooltip
+        near the empty field. That failure mode is indistinguishable
+        from "nothing happens" unless you're looking right at the input.
+        handleSubmit now does the same required-field check itself and
+        surfaces it as a normal inline error instead.
+      */}
+      <form onSubmit={handleSubmit} noValidate className="mt-8 flex flex-col gap-4">
         <Input
           id="identifier"
           name="identifier"
