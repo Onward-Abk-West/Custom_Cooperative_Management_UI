@@ -15,6 +15,17 @@
   --brand-ink: #2b2117;
   --brand-line: #e4d6b3;
 
+  /* Opaque card/header surfaces — dashboard stat cards, chart cards,
+     the filters bar, tables, the app-shell header. In light mode a
+     translucent white-over-cream reads as a soft raised card; that
+     same rgba(255,255,255,N) literal is illegible in dark mode (it
+     blends into the near-black background instead of lifting off
+     it), so dark mode swaps in a solid, visibly-lighter-than-background
+     brown instead of just thinning the same white overlay — see the
+     dark block below. */
+  --surface-card: rgba(255, 255, 255, 0.6);
+  --surface-header: rgba(255, 255, 255, 0.7);
+
   /* Glass surfaces — used over the CooperativeScene illustration (the
      splash and login screens) and the app-shell header. Frosted panes
      read as "glass" only with something visible moving behind them, so
@@ -26,6 +37,28 @@
   --glass-shadow: rgba(43, 33, 23, 0.28);
   --glass-input: rgba(255, 255, 255, 0.38);
   --glass-input-border: rgba(255, 255, 255, 0.5);
+
+  /* Chart categorical palette — dashboard.md / dataviz skill.
+     5 hues, fixed order, validated with scripts/validate_palette.js
+     against this surface (#fbf5e6): ALL CHECKS PASS, one WARN (gold's
+     contrast vs surface is 2.3, below 3:1 — mitigated by always
+     pairing gold marks with a direct label or the table view, never
+     color alone). Slots 1 and 4 keep one hex across both themes;
+     slots 2, 3 and 5 need a different step per theme to clear the
+     lightness band and the CVD floor at once — see the dark block
+     below. Never used for status (good/bad) — that's --status-good
+     / --status-bad, a separate reserved scale. */
+  --chart-1: #3f7a3f; /* green — savings / primary series */
+  --chart-2: #d9971f; /* gold — loans / secondary series */
+  --chart-3: #c1592e; /* terracotta — disbursements */
+  --chart-4: #12967f; /* teal */
+  --chart-5: #5b4a8f; /* purple */
+
+  /* Status is a small fixed scale, reserved meaning, never reused as
+     a categorical slot — always paired with an icon + label, never
+     color alone (see StatCard's delta arrow). */
+  --status-good: #1f7a34;
+  --status-bad: #c8352a;
 }
 
 @theme inline {
@@ -38,8 +71,17 @@
   --color-brand-cream: var(--brand-cream);
   --color-brand-ink: var(--brand-ink);
   --color-brand-line: var(--brand-line);
+  --color-surface-card: var(--surface-card);
+  --color-surface-header: var(--surface-header);
   --color-glass-surface: var(--glass-surface);
   --color-glass-border: var(--glass-border);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-status-good: var(--status-good);
+  --color-status-bad: var(--status-bad);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-heading);
@@ -76,6 +118,26 @@
     --glass-shadow: rgba(0, 0, 0, 0.55);
     --glass-input: rgba(255, 255, 255, 0.08);
     --glass-input-border: rgba(255, 255, 255, 0.18);
+
+    /* Dark-mode chart palette — validated separately against this
+       surface (#241c12): ALL CHECKS PASS, one WARN (terracotta's
+       contrast vs surface is 2.58 — same relief requirement as
+       gold's light-mode WARN). Slots 1 and 4 are stable across
+       themes; 2, 3 and 5 re-step to clear the dark lightness band
+       (~0.48–0.67 L) without re-failing the CVD floor. */
+    --chart-2: #ad881c;
+    --chart-3: #a8362a;
+    --chart-5: #8f7ad1;
+
+    --status-good: #4caf5c;
+    --status-bad: #e6685c;
+
+    /* Solid, visibly-lighter-than-background elevation — not an
+       alpha overlay, since a thin white wash over near-black just
+       reads as "slightly less black," not as a distinct raised
+       surface. */
+    --surface-card: #332818;
+    --surface-header: #3a2e1c;
   }
 }
 
@@ -97,6 +159,16 @@
   --glass-shadow: rgba(0, 0, 0, 0.55);
   --glass-input: rgba(255, 255, 255, 0.08);
   --glass-input-border: rgba(255, 255, 255, 0.18);
+
+  --chart-2: #ad881c;
+  --chart-3: #a8362a;
+  --chart-5: #8f7ad1;
+
+  --status-good: #4caf5c;
+  --status-bad: #e6685c;
+
+  --surface-card: #332818;
+  --surface-header: #3a2e1c;
 }
 
 body {
