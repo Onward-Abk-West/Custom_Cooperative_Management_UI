@@ -1,29 +1,93 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { apiPost, setAccessToken, ApiError } from "@/lib/api-client";
 
 /**
- * Login screen. Layout only for now — submitting doesn't call the API
- * yet (there's no backend auth endpoint to call — once there is, this
- * becomes an apiPost("/auth/login", ...) from src/lib/api-client.ts),
- * but the form shape matches the locked PRD decision: identifier is
- * EMAIL OR PHONE NUMBER (not a separate "username" concept), plus a
- * PIN rather than a password.
+ * Login screen. Calls POST /api/v1/auth/login (AbkWestCoop.Api's
+ * AuthController) with the PRD-locked shape: identifier is EMAIL OR
+ * PHONE NUMBER (not a separate "username" concept), plus a PIN rather
+ * than a password. Field names (EmailOrPhoneNumber, Pin) must match
+ * AbkWestCoop.Contracts' PinLoginRequest record exactly.
  */
+interface PinLoginResponseData {
+  userId: string;
+  societyId: string | null;
+  email: string;
+  phoneNumber: string;
+  roles: string[];
+  accessToken: string;
+  refreshToken: string;
+  accessTokenExpiresAtUtc: string;
+  refreshTokenExpiresAtUtc: string;
+}
+
+interface PinLoginResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: PinLoginResponseData | null;
+}
+
+const SESSION_COOKIE = "onward_session";
+
 export default function LoginPage() {
+  const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [pin, setPin] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
     setSubmitting(true);
-    // TODO: apiPost("/auth/login", { identifier, pin }) once the
-    // backend endpoint exists.
-    window.setTimeout(() => setSubmitting(false), 600);
+    try {
+      const response = await apiPost<PinLoginResponse>(
+        "/api/v1/auth/login",
+        { EmailOrPhoneNumber: identifier, Pin: pin },
+        // Skip apiFetch's automatic 401 -> refresh -> retry cycle here:
+        // that path is for an expired session on an already-signed-in
+        // call, not a wrong-PIN attempt on the login form itself.
+        { skipAuthRetry: true }
+      );
+
+      if (!response.success || !response.data) {
+        setError(response.message || "The email/phone number or PIN provided is incorrect.");
+        return;
+      }
+
+      setAccessToken(response.data.accessToken);
+      // proxy.ts only checks for this cookie's presence to gate the app
+      // shell — it isn't the httpOnly refresh-token cookie (the backend
+      // currently returns the refresh token in the JSON body, not as a
+      // Set-Cookie header), just a client-set marker so navigation past
+      // the login screen works.
+      document.cookie = `${SESSION_COOKIE}=1; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+
+      // Read "next" from the URL directly (rather than useSearchParams)
+      // so this page doesn't need a Suspense boundary just for the
+      // post-login redirect target — proxy.ts sets this query param
+      // when it bounces an unauthenticated visitor here.
+      const next = new URLSearchParams(window.location.search).get("next") || "/dashboard";
+      router.push(next);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(
+          err.status === 401
+            ? "The email/phone number or PIN provided is incorrect."
+            : err.message || "Something went wrong. Please try again."
+        );
+      } else {
+        setError("Could not reach the server. Please check your connection and try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -80,6 +144,12 @@ export default function LoginPage() {
             Forgot your PIN?
           </a>
         </div>
+
+        {error && (
+          <p role="alert" className="text-sm text-red-600">
+            {error}
+          </p>
+        )}
 
         <Button type="submit" disabled={submitting} className="mt-2">
           {submitting ? "Signing in…" : "Log in"}
