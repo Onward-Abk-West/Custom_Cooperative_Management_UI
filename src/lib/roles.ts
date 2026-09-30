@@ -3,8 +3,13 @@
  *
  *   - Developer superadmin: full in-app control, no Member entity of
  *     its own, own audit trail visible only to itself.
- *   - Onward superadmin: the business owner — creates societies,
- *     assigns Supervisors, views (shared) audit logs.
+ *   - Onward superadmin: the business owner — assigns Supervisors,
+ *     views audit logs. Cannot create a society: per the PRD decision,
+ *     society creation stays Developer-Superadmin-only even though
+ *     society count is dynamic (DeveloperSuperadminSocietiesController's
+ *     [Authorize] on the backend enforces this — an earlier version of
+ *     this comment said Onward Superadmin could create societies; it
+ *     couldn't, on the backend, and that was the bug, not this line).
  *   - Per society: one Supervisor, one President (mutually exclusive —
  *     a person holds one or the other, not both), at least four
  *     Admins, and many Members. Society data is isolated: only a
@@ -76,11 +81,14 @@ export const NAV_ITEMS: NavItem[] = [
     // AdminProfileUpdateRequestsController — Admin only.
     roles: ["admin"],
   },
-  {
-    label: "Societies",
-    href: "/societies",
-    roles: ["onward_superadmin", "developer_superadmin"],
-  },
+  // No standalone "Societies" nav item — the sidebar's society switcher
+  // (Sidebar.tsx, superadmin roles only) now owns switching societies,
+  // with "Manage" (→ /societies/[id], the Supervisor/President
+  // assignment forms) and "New society" (Developer Superadmin only)
+  // links right beside it. /societies/new and /societies/[id] still
+  // exist — just reached from the switcher instead of a nav item; the
+  // old list-all-societies table (/societies) isn't linked from
+  // anywhere in the UI anymore.
   {
     label: "Audit Log",
     href: "/audit-log",

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Sidebar, MenuIcon } from "@/components/Sidebar";
 import type { Role } from "@/lib/roles";
 import type { Society } from "@/lib/mock-session";
+import { SocietyProvider } from "@/lib/society-context";
 
 /**
  * Composes the sidebar with the rest of the authenticated shell.
@@ -36,35 +37,36 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-brand-cream">
-      <Sidebar
-        role={role}
-        societies={societies}
-        currentSocietyId={currentSocietyId}
-        userName={userName}
-        mobileOpen={mobileOpen}
-        onCloseMobile={() => setMobileOpen(false)}
-      />
+    <SocietyProvider initialSocietyId={currentSocietyId}>
+      <div className="flex min-h-screen bg-brand-cream">
+        <Sidebar
+          role={role}
+          societies={societies}
+          userName={userName}
+          mobileOpen={mobileOpen}
+          onCloseMobile={() => setMobileOpen(false)}
+        />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b border-brand-line bg-surface-header px-4 py-3 lg:hidden">
-          <button
-            type="button"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Open menu"
-            className="rounded-full p-2 text-brand-ink/70 transition hover:bg-brand-line/30"
-          >
-            <MenuIcon className="h-5 w-5" />
-          </button>
-          <span className="font-heading truncate text-sm font-bold text-brand-green">
-            Onward Abeokuta-West
-          </span>
-        </header>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="flex items-center gap-3 border-b border-brand-line bg-surface-header px-4 py-3 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open menu"
+              className="rounded-full p-2 text-brand-ink/70 transition hover:bg-brand-line/30"
+            >
+              <MenuIcon className="h-5 w-5" />
+            </button>
+            <span className="font-heading truncate text-sm font-bold text-brand-green">
+              Onward Abeokuta-West
+            </span>
+          </header>
 
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
-          {children}
-        </main>
+          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </SocietyProvider>
   );
 }
