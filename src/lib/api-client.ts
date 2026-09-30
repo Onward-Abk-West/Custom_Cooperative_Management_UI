@@ -35,6 +35,23 @@ export function getAccessToken() {
   return accessToken;
 }
 
+/**
+ * Every AbkWestCoop.Api endpoint responds with this envelope shape,
+ * success or failure. An error case (400/403/404/409/500) still comes
+ * back as one of these, but apiFetch throws ApiError for any non-2xx
+ * response with the parsed envelope as `err.body` — so callers only
+ * ever see this type directly on the success path. Read `err.body`
+ * (cast to ApiEnvelope<unknown>) for the specific `code` when a
+ * catch block needs to branch on it rather than just showing
+ * `err.message`.
+ */
+export interface ApiEnvelope<T> {
+  success: boolean;
+  code: string;
+  message: string;
+  data: T | null;
+}
+
 export class ApiError extends Error {
   status: number;
   body: unknown;

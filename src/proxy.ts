@@ -21,7 +21,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const SESSION_COOKIE = "onward_session";
 
-const PUBLIC_PATHS = ["/", "/login", "/forgot-pin"];
+const PUBLIC_PATHS = ["/", "/login", "/forgot-pin", "/first-time-signin"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some((path) =>
