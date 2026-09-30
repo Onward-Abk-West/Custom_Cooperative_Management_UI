@@ -1,17 +1,17 @@
 /**
  * Client-side API client for calls to the backend, once it exists.
  *
- * Assumed auth contract — nothing here is locked with the backend
- * yet, so flag it if the real API ends up shaped differently: login
- * returns a short-lived access token in the response BODY, held here
- * in memory only (never localStorage, to keep it out of reach of an
- * XSS payload); a long-lived refresh token lives in an httpOnly,
- * Secure cookie the browser sends automatically. `apiFetch` attaches
- * the access token as a Bearer header and sends credentials so that
- * cookie goes along; on a 401 it tries exactly one refresh
- * (POST /auth/refresh) before retrying the original request, and only
- * signs the user out (clears the token, redirects to /login) if the
- * refresh itself fails.
+ * Auth contract, confirmed against AbkWestCoop.Api's AuthController:
+ * login returns a short-lived access token AND a refresh token in the
+ * response BODY (no httpOnly cookie involved at all), both held here
+ * in memory only (never localStorage, to keep them out of reach of an
+ * XSS payload — see setAccessToken/setRefreshToken below). `apiFetch`
+ * attaches the access token as a Bearer header; on a 401 it tries
+ * exactly one refresh (POST /api/v1/auth/refresh, sending the
+ * in-memory refresh token in the body) before retrying the original
+ * request, and only signs the user out (clears both tokens, the
+ * session cookies, and redirects to /login) if the refresh itself
+ * fails.
  *
  * This is separate from src/proxy.ts's onward_session cookie check,
  * which only gates page navigation server-side — this client handles
@@ -26,6 +26,7 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000";
 
 let accessToken: string | null = null;
+let refreshToken: string | null = null;
 
 export function setAccessToken(token: string | null) {
   accessToken = token;
@@ -33,6 +34,23 @@ export function setAccessToken(token: string | null) {
 
 export function getAccessToken() {
   return accessToken;
+}
+
+/**
+ * Held in memory alongside the access token (never localStorage, same
+ * rationale) because the backend does NOT set an httpOnly refresh
+ * cookie — AuthController.Refresh/Logout both read the refresh token
+ * from the request BODY (RefreshAuthenticationSessionRequest /
+ * RevokeAuthenticationSessionRequest). session.ts's establishSession
+ * is the only place this gets set, from the login/first-time-signin
+ * response's `refreshToken` field.
+ */
+export function setRefreshToken(token: string | null) {
+  refreshToken = token;
+}
+
+export function getRefreshToken() {
+  return refreshToken;
 }
 
 /**
@@ -65,15 +83,29 @@ export class ApiError extends Error {
 }
 
 async function refreshAccessToken(): Promise<string | null> {
+  if (!refreshToken) return null;
   try {
-    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    // Correct path (api/v1/auth/refresh, matching every other endpoint
+    // this client calls) and payload (the refresh token in the JSON
+    // body — see the comment on setRefreshToken above for why this
+    // can't rely on a cookie the backend never sets). This previously
+    // pointed at /auth/refresh with no body and so could never
+    // succeed; fixed as part of wiring up logout(), which depends on
+    // the same in-memory refresh token this fixes the retrieval of.
+    const res = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
       method: "POST",
       credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ RefreshToken: refreshToken }),
     });
     if (!res.ok) return null;
-    const data = (await res.json()) as { accessToken?: string };
-    if (!data.accessToken) return null;
-    accessToken = data.accessToken;
+    const envelope = (await res.json()) as ApiEnvelope<{
+      accessToken?: string;
+      refreshToken?: string;
+    }>;
+    if (!envelope.success || !envelope.data?.accessToken) return null;
+    accessToken = envelope.data.accessToken;
+    if (envelope.data.refreshToken) refreshToken = envelope.data.refreshToken;
     return accessToken;
   } catch {
     return null;
@@ -137,6 +169,17 @@ export async function apiFetch<T = unknown>(
       res = await doFetch();
     } else {
       accessToken = null;
+      refreshToken = null;
+      if (typeof document !== "undefined") {
+        // Mirror session.ts's endSession() cookie clears here too. This
+        // module can't import session.ts without creating a cycle
+        // (session.ts already imports setAccessToken/setRefreshToken
+        // from here), so these two names are duplicated rather than
+        // shared — keep them in sync with SESSION_INFO_COOKIE /
+        // AUTH_SESSION_COOKIE in session.ts if either ever changes.
+        document.cookie = "onward_session=; path=/; max-age=0";
+        document.cookie = "onward_session_info=; path=/; max-age=0";
+      }
       if (typeof window !== "undefined") {
         // Deliberately a hard navigation, not router.push(): this is a
         // plain module, not a component, so there's no router instance

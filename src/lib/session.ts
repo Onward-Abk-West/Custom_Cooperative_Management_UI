@@ -1,4 +1,4 @@
-import { setAccessToken } from "./api-client";
+import { setAccessToken, setRefreshToken, getRefreshToken, apiPost } from "./api-client";
 import type { Role } from "./roles";
 
 /**
@@ -16,15 +16,20 @@ import type { Role } from "./roles";
  * is that both the server layout (via next/headers' cookies()) and
  * client components can read it directly.
  *
- * Known gap, not fixed here: api-client.ts's refreshAccessToken() posts
- * to /auth/refresh expecting the backend to have set an httpOnly refresh
- * cookie at login, but AbkWestCoop.Api currently returns the refresh
- * token in the JSON body instead (see PinLoginResponseData/AuthSessionData
- * below) and never sets that cookie. That means a hard refresh currently
- * loses the in-memory access token with no way to silently recover it —
- * the user is bounced back through /login. Out of scope for this pass;
- * flagging it here since it directly affects how "real" this session
- * feels across a reload.
+ * Known gap, still not fixed here: both the access token AND the
+ * refresh token (see setRefreshToken in api-client.ts) live in JS
+ * memory only, by design (never localStorage). api-client.ts's
+ * refreshAccessToken() now correctly POSTs the refresh token to
+ * /api/v1/auth/refresh (this was previously broken — it hit the wrong
+ * path with no body, expecting an httpOnly cookie the backend never
+ * sets), so an expired *access* token recovers silently mid-session.
+ * But a hard page reload still clears both in-memory tokens with
+ * nothing to reconstruct them from, so the user is bounced back
+ * through /login on refresh regardless. Fixing that for real needs
+ * either a persisted (non-httpOnly, since this is a memory-only
+ * client) refresh token store or a backend-set httpOnly cookie plus a
+ * refresh call that doesn't require the token in the body at all.
+ * Out of scope for this pass.
  */
 
 const SESSION_INFO_COOKIE = "onward_session_info";
@@ -183,8 +188,54 @@ const AUTH_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
  */
 export function establishSession(data: AuthSessionData) {
   setAccessToken(data.accessToken);
+  setRefreshToken(data.refreshToken);
   if (typeof document !== "undefined") {
     document.cookie = `${AUTH_SESSION_COOKIE}=1; path=/; max-age=${AUTH_SESSION_MAX_AGE_SECONDS}; SameSite=Lax`;
   }
   saveSessionInfo(sessionInfoFromAuthData(data));
+}
+
+/**
+ * Clears every trace of the client session — both in-memory tokens,
+ * the plain presence cookie src/proxy.ts gates page navigation on, and
+ * this module's readable session-info cookie — with no network call.
+ * Called by logout() below, and mirrored (it can't import this module
+ * without a cycle — see the comment there) by api-client.ts's own
+ * "refresh failed" path, so an expired session cleans up exactly the
+ * same way a deliberate logout does.
+ */
+export function endSession() {
+  setAccessToken(null);
+  setRefreshToken(null);
+  clearSessionInfo();
+  if (typeof document !== "undefined") {
+    document.cookie = `${AUTH_SESSION_COOKIE}=; path=/; max-age=0`;
+  }
+}
+
+/**
+ * Deliberate sign-out — the Sidebar's "Log out" button calls this and
+ * nothing else. Best-effort revokes the refresh token server-side
+ * (POST /api/v1/auth/logout, AuthController.Logout) so it can't be
+ * replayed, but a failed or skipped revoke (no refresh token on hand,
+ * network error, token already expired/revoked) never blocks the
+ * actual sign-out — the local session ends and the user lands on
+ * /login regardless. Deliberately a hard navigation for the same
+ * reason api-client.ts's own redirect is: it throws away any
+ * in-memory app state tied to the ended session rather than letting
+ * it survive a client-side route transition.
+ */
+export async function logout() {
+  const token = getRefreshToken();
+  if (token) {
+    try {
+      await apiPost("/api/v1/auth/logout", { RefreshToken: token }, { skipAuthRetry: true });
+    } catch {
+      // Best-effort — see doc comment above.
+    }
+  }
+  endSession();
+  if (typeof window !== "undefined") {
+    window.location.href = "/login";
+  }
 }
