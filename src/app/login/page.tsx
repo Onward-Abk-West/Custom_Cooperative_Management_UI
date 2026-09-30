@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { apiPost, setAccessToken, ApiError } from "@/lib/api-client";
+import { apiPost, ApiError, type ApiEnvelope } from "@/lib/api-client";
+import { establishSession, type AuthSessionData } from "@/lib/session";
 
 /**
  * Login screen. Calls POST /api/v1/auth/login (AbkWestCoop.Api's
@@ -13,28 +14,12 @@ import { apiPost, setAccessToken, ApiError } from "@/lib/api-client";
  * PHONE NUMBER (not a separate "username" concept), plus a PIN rather
  * than a password. Field names (EmailOrPhoneNumber, Pin) must match
  * AbkWestCoop.Contracts' PinLoginRequest record exactly.
+ *
+ * A brand-new member (created by a Developer Superadmin or Supervisor)
+ * doesn't have a PIN yet and can't use this form at all — they go
+ * through /first-time-signin with the temporary credential they were
+ * issued instead. See that page and src/lib/api/first-time-auth.ts.
  */
-interface PinLoginResponseData {
-  userId: string;
-  societyId: string | null;
-  email: string;
-  phoneNumber: string;
-  roles: string[];
-  accessToken: string;
-  refreshToken: string;
-  accessTokenExpiresAtUtc: string;
-  refreshTokenExpiresAtUtc: string;
-}
-
-interface PinLoginResponse {
-  success: boolean;
-  code: string;
-  message: string;
-  data: PinLoginResponseData | null;
-}
-
-const SESSION_COOKIE = "onward_session";
-
 export default function LoginPage() {
   const router = useRouter();
   const [identifier, setIdentifier] = useState("");
@@ -44,25 +29,10 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // Diagnostic: if this never appears in the console, the click isn't
-    // reaching this function at all (e.g. a stale/unhydrated bundle, or
-    // something else swallowing the submit) — everything below this line
-    // is irrelevant in that case. Safe to remove once login is confirmed
-    // working end-to-end on the live deployment.
-    console.log("[login] handleSubmit fired", {
-      hasIdentifier: identifier.trim().length > 0,
-      pinLength: pin.length,
-    });
-
-    if (!identifier.trim() || !pin.trim()) {
-      setError("Please enter both your email or phone number and PIN.");
-      return;
-    }
-
     setError(null);
     setSubmitting(true);
     try {
-      const response = await apiPost<PinLoginResponse>(
+      const response = await apiPost<ApiEnvelope<AuthSessionData>>(
         "/api/v1/auth/login",
         { EmailOrPhoneNumber: identifier, Pin: pin },
         // Skip apiFetch's automatic 401 -> refresh -> retry cycle here:
@@ -76,13 +46,7 @@ export default function LoginPage() {
         return;
       }
 
-      setAccessToken(response.data.accessToken);
-      // proxy.ts only checks for this cookie's presence to gate the app
-      // shell — it isn't the httpOnly refresh-token cookie (the backend
-      // currently returns the refresh token in the JSON body, not as a
-      // Set-Cookie header), just a client-set marker so navigation past
-      // the login screen works.
-      document.cookie = `${SESSION_COOKIE}=1; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+      establishSession(response.data);
 
       // Read "next" from the URL directly (rather than useSearchParams)
       // so this page doesn't need a Suspense boundary just for the
@@ -120,16 +84,7 @@ export default function LoginPage() {
         Use the email or phone number on your member record.
       </p>
 
-      {/*
-        noValidate: without this, the browser's own HTML5 "required"
-        check can block submission before onSubmit ever runs — no
-        console output, no network request, just a small native tooltip
-        near the empty field. That failure mode is indistinguishable
-        from "nothing happens" unless you're looking right at the input.
-        handleSubmit now does the same required-field check itself and
-        surfaces it as a normal inline error instead.
-      */}
-      <form onSubmit={handleSubmit} noValidate className="mt-8 flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
         <Input
           id="identifier"
           name="identifier"
@@ -181,8 +136,15 @@ export default function LoginPage() {
       </form>
 
       <p className="mt-6 text-center text-xs text-brand-ink/50">
-        First time signing in? Use the PIN issued by your society&apos;s
-        Admin or Supervisor.
+        First time signing in?{" "}
+        <a
+          href="/first-time-signin"
+          className="font-medium text-brand-gold-dark hover:underline"
+        >
+          Set up your PIN
+        </a>{" "}
+        with the temporary credential your society&apos;s Admin or
+        Supervisor gave you.
       </p>
     </AuthCard>
   );

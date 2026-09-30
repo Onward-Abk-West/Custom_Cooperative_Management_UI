@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isSuperadmin, navItemsForRole, ROLE_LABELS, type Role } from "@/lib/roles";
 import type { Society } from "@/lib/mock-session";
+import { listSocieties } from "@/lib/api/societies";
 import { CooperativeMark } from "@/components/illustrations/CooperativeMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { navIconFor } from "@/components/NavIcons";
@@ -122,6 +123,36 @@ export function Sidebar({
   const items = navItemsForRole(role);
   const [societyId, setSocietyId] = useState(currentSocietyId);
 
+  // The (app)/layout.tsx server component can't fetch this itself (no
+  // access to the in-memory access token — see its own comment), so for
+  // a real session it always passes societies={[]}. Superadmin roles
+  // fetch the real list here, client-side, on mount; every other role
+  // only ever belongs to their own society (session.societyId, already
+  // passed in as currentSocietyId) so no switcher is needed and this
+  // fetch is skipped entirely.
+  const [liveSocieties, setLiveSocieties] = useState<Society[]>(societies);
+
+  useEffect(() => {
+    if (!isSuperadmin(role)) return;
+    let cancelled = false;
+    listSocieties(1, 100)
+      .then((response) => {
+        if (cancelled || !response.data) return;
+        setLiveSocieties(response.data.items);
+        setSocietyId((current) => current || response.data!.items[0]?.id || "");
+      })
+      .catch(() => {
+        // Leave liveSocieties as whatever was passed in — the switcher
+        // stays hidden per the societies.length > 0 guard below.
+      });
+    return () => {
+      cancelled = true;
+    };
+    // role is fixed for the life of a signed-in session — re-running
+    // this on every societyId change would re-fetch on each selection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role]);
+
   useEffect(() => {
     if (!mobileOpen) return;
     function onKeyDown(e: KeyboardEvent) {
@@ -166,7 +197,7 @@ export function Sidebar({
           </button>
         </div>
 
-        {isSuperadmin(role) && societies.length > 0 && !collapsed && (
+        {isSuperadmin(role) && liveSocieties.length > 0 && !collapsed && (
           <div className="border-b border-brand-line px-3 py-3">
             <label htmlFor="sidebar-society" className="sr-only">
               Society
@@ -177,7 +208,7 @@ export function Sidebar({
               onChange={(e) => setSocietyId(e.target.value)}
               className="w-full rounded-lg border border-brand-line bg-brand-line/25 px-2.5 py-2 text-xs font-medium text-brand-ink outline-none focus:border-brand-gold"
             >
-              {societies.map((society) => (
+              {liveSocieties.map((society) => (
                 <option key={society.id} value={society.id}>
                   {society.name}
                 </option>
