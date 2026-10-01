@@ -21,6 +21,7 @@ export default function MemberDetailPage({
 }) {
   const { id: memberId } = usePromise(params);
   const [profile, setProfile] = useState<MemberProfileData | null>(null);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(true);
@@ -39,6 +40,7 @@ export default function MemberDetailPage({
           return;
         }
         setProfile(response.data);
+        setName(response.data.name ?? "");
         setEmail(response.data.email ?? "");
         setPhoneNumber(response.data.phoneNumber ?? "");
       })
@@ -62,7 +64,7 @@ export default function MemberDetailPage({
     setSaved(false);
     setSaving(true);
     try {
-      const response = await updateMemberProfile(memberId, email, phoneNumber);
+      const response = await updateMemberProfile(memberId, name, email, phoneNumber);
       if (!response.success || !response.data) {
         setSaveError(response.message || "The profile could not be updated.");
         return;
@@ -98,12 +100,19 @@ export default function MemberDetailPage({
         <Link href="/members" className="text-sm font-medium text-brand-gold-dark hover:underline">
           ← Look up another member
         </Link>
-        <h1 className="font-heading mt-2 text-2xl font-bold text-brand-ink">Member</h1>
-        <p className="mt-1 font-mono text-xs text-brand-ink/50">{profile.userId}</p>
+        <h1 className="font-heading mt-2 text-2xl font-bold text-brand-ink">
+          {profile.name || profile.email || profile.phoneNumber || "Member"}
+        </h1>
         <p className="mt-1 text-sm text-brand-ink/60">Roles: {profile.roles.join(", ") || "—"}</p>
       </div>
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 rounded-2xl border border-brand-line bg-surface-card p-5">
+        <Input
+          id="member-name"
+          label="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
         <Input
           id="member-email"
           label="Email"

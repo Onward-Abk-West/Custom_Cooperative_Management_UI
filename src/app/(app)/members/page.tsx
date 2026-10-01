@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Table,
@@ -49,10 +48,10 @@ const PAGE_SIZE = 20;
  * read-only — neither has a create-member endpoint on the backend.
  */
 export default function MembersPage() {
-  const router = useRouter();
   const { societyId: switchedSocietyId } = useSociety();
   const [role, setRole] = useState<Role | null>(null);
   const [ownSocietyId, setOwnSocietyId] = useState<string>("");
+  const [filterText, setFilterText] = useState("");
 
   useEffect(() => {
     const info = readSessionInfo();
@@ -75,7 +74,7 @@ export default function MembersPage() {
             Everyone in this society — Members, Admins, Supervisor and President alike.
           </p>
         </div>
-        <MemberLookupForm onLookup={(id) => router.push(`/members/${id}`)} />
+        <MemberFilterBox value={filterText} onChange={setFilterText} />
       </div>
 
       {!societyId ? (
@@ -85,7 +84,7 @@ export default function MembersPage() {
             : "Your society could not be determined from your session — try signing in again."}
         </div>
       ) : (
-        <MembersRoster societyId={societyId} />
+        <MembersRoster societyId={societyId} filterText={filterText} />
       )}
 
       {role === "supervisor" && (
@@ -102,40 +101,60 @@ export default function MembersPage() {
   );
 }
 
-function MemberLookupForm({ onLookup }: { onLookup: (id: string) => void }) {
-  const [memberId, setMemberId] = useState("");
+/**
+ * A live filter, not a lookup-by-ID box — matches by name, email or
+ * phone number. Member IDs are never surfaced as something a person
+ * types or reads here; see MembersRoster for how the match is applied.
+ */
+function MemberFilterBox({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (text: string) => void;
+}) {
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (memberId.trim()) onLookup(memberId.trim());
-      }}
-      noValidate
-      className="flex items-end gap-2"
-    >
-      <div className="w-64">
-        <Input
-          id="member-lookup-id"
-          label="Jump to a User ID"
-          value={memberId}
-          onChange={(e) => setMemberId(e.target.value)}
-          placeholder="00000000-0000-0000-0000-000000000000"
-        />
-      </div>
-      <Button type="submit" variant="outline">
-        Go
-      </Button>
-    </form>
+    <div className="w-72">
+      <Input
+        id="member-filter"
+        label="Filter members"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Search by name, email or phone"
+      />
+    </div>
   );
 }
 
-function MembersRoster({ societyId }: { societyId: string }) {
+/** The largest page the backend allows in one request (see
+ * ListSocietyMembersRequest/SocietyMembersController: pageSize must be
+ * 1-100) — used while filtering so the match has as much of the
+ * roster to search as a single request can hold. */
+const MAX_PAGE_SIZE = 100;
+
+function MembersRoster({
+  societyId,
+  filterText,
+}: {
+  societyId: string;
+  filterText: string;
+}) {
   const [pageNumber, setPageNumber] = useState(1);
   const [items, setItems] = useState<SocietyMemberSummary[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const needle = filterText.trim().toLowerCase();
+  const isFiltering = needle.length > 0;
+  // Filtering is client-side (the backend has no text-search query yet),
+  // so it trades normal pagination for the single largest page available
+  // and searches within that. Fine for a society-sized roster; see the
+  // "showing matches from" note below for the honest caveat once a
+  // society has grown past MAX_PAGE_SIZE members.
+  const effectivePageNumber = isFiltering ? 1 : pageNumber;
+  const effectivePageSize = isFiltering ? MAX_PAGE_SIZE : PAGE_SIZE;
 
   // Jumping to a different society (via the sidebar switcher) always
   // restarts at page 1 — a stale page number from the previous society
@@ -148,7 +167,7 @@ function MembersRoster({ societyId }: { societyId: string }) {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    listSocietyMembers(societyId, pageNumber, PAGE_SIZE)
+    listSocietyMembers(societyId, effectivePageNumber, effectivePageSize)
       .then((response) => {
         if (cancelled) return;
         if (!response.success || !response.data) {
@@ -173,13 +192,27 @@ function MembersRoster({ societyId }: { societyId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [societyId, pageNumber]);
+  }, [societyId, effectivePageNumber, effectivePageSize]);
+
+  const visibleItems = isFiltering
+    ? items.filter(
+        (member) =>
+          member.name?.toLowerCase().includes(needle) ||
+          member.email?.toLowerCase().includes(needle) ||
+          member.phoneNumber?.toLowerCase().includes(needle)
+      )
+    : items;
 
   return (
     <div className="flex flex-col gap-4">
       {totalCount > 0 && (
         <p className="text-sm text-brand-ink/60">
-          {totalCount} member{totalCount === 1 ? "" : "s"}.
+          {isFiltering
+            ? `${visibleItems.length} match${visibleItems.length === 1 ? "" : "es"}`
+            : `${totalCount} member${totalCount === 1 ? "" : "s"}.`}
+          {isFiltering && totalCount > MAX_PAGE_SIZE && (
+            <> — searched the first {MAX_PAGE_SIZE} of {totalCount} members.</>
+          )}
         </p>
       )}
 
@@ -193,14 +226,15 @@ function MembersRoster({ societyId }: { societyId: string }) {
         <div className="rounded-2xl border border-brand-line bg-surface-card p-6 text-sm text-brand-ink/60">
           Loading members…
         </div>
-      ) : items.length === 0 && !error ? (
+      ) : visibleItems.length === 0 && !error ? (
         <div className="rounded-2xl border border-dashed border-brand-line bg-surface-card p-6 text-sm text-brand-ink/60">
-          No members yet in this society.
+          {isFiltering ? "No members match that filter." : "No members yet in this society."}
         </div>
       ) : (
         <Table>
           <TableHead>
             <TableRow>
+              <TableHeaderCell>Name</TableHeaderCell>
               <TableHeaderCell>Email</TableHeaderCell>
               <TableHeaderCell>Phone</TableHeaderCell>
               <TableHeaderCell>Roles</TableHeaderCell>
@@ -208,8 +242,9 @@ function MembersRoster({ societyId }: { societyId: string }) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {items.map((member) => (
+            {visibleItems.map((member) => (
               <TableRow key={member.userId}>
+                <TableCell>{member.name || "—"}</TableCell>
                 <TableCell>{member.email || "—"}</TableCell>
                 <TableCell>{member.phoneNumber || "—"}</TableCell>
                 <TableCell>{member.roles.join(", ") || "—"}</TableCell>
@@ -227,7 +262,7 @@ function MembersRoster({ societyId }: { societyId: string }) {
         </Table>
       )}
 
-      {totalPages > 1 && (
+      {!isFiltering && totalPages > 1 && (
         <div className="flex items-center justify-between text-sm text-brand-ink/60">
           <button
             type="button"
@@ -255,6 +290,7 @@ function MembersRoster({ societyId }: { societyId: string }) {
 }
 
 function DeveloperCreateMemberCard({ societyId }: { societyId: string }) {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -266,12 +302,13 @@ function DeveloperCreateMemberCard({ societyId }: { societyId: string }) {
     setError(null);
     setSubmitting(true);
     try {
-      const response = await createMemberAsDeveloperSuperadmin(societyId, email, phoneNumber);
+      const response = await createMemberAsDeveloperSuperadmin(societyId, name, email, phoneNumber);
       if (!response.success || !response.data) {
         setError(response.message || "The member could not be created.");
         return;
       }
       setCreated(response.data);
+      setName("");
       setEmail("");
       setPhoneNumber("");
     } catch (err) {
@@ -296,9 +333,8 @@ function DeveloperCreateMemberCard({ societyId }: { societyId: string }) {
 
       {created && (
         <div className="mt-4 rounded-xl border border-brand-gold/40 bg-brand-gold/10 p-4 text-sm">
-          <p className="font-semibold text-brand-ink">Member created.</p>
-          <p className="mt-1 text-brand-ink/70">
-            User ID: <span className="font-mono text-xs">{created.userId}</span>
+          <p className="font-semibold text-brand-ink">
+            Member created: {created.name}.
           </p>
           <p className="mt-1 text-brand-ink/70">
             Temporary credential (share this with the member — it expires{" "}
@@ -311,6 +347,9 @@ function DeveloperCreateMemberCard({ societyId }: { societyId: string }) {
       )}
 
       <form onSubmit={handleSubmit} noValidate className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <Input id="dev-member-name" label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" />
+        </div>
         <div className="flex-1">
           <Input id="dev-member-email" label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="member@example.com" />
         </div>
@@ -331,6 +370,7 @@ function DeveloperCreateMemberCard({ societyId }: { societyId: string }) {
 }
 
 function SupervisorCreateMemberCard() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -342,12 +382,13 @@ function SupervisorCreateMemberCard() {
     setError(null);
     setSubmitting(true);
     try {
-      const response = await createMemberAsSupervisor(email, phoneNumber);
+      const response = await createMemberAsSupervisor(name, email, phoneNumber);
       if (!response.success || !response.data) {
         setError(response.message || "The member could not be created.");
         return;
       }
       setCreated(response.data);
+      setName("");
       setEmail("");
       setPhoneNumber("");
     } catch (err) {
@@ -364,9 +405,8 @@ function SupervisorCreateMemberCard() {
       <h2 className="font-heading text-lg font-bold text-brand-ink">Create member in your society</h2>
       {created && (
         <div className="mt-4 rounded-xl border border-brand-gold/40 bg-brand-gold/10 p-4 text-sm">
-          <p className="font-semibold text-brand-ink">Member created.</p>
-          <p className="mt-1 text-brand-ink/70">
-            User ID: <span className="font-mono text-xs">{created.userId}</span>
+          <p className="font-semibold text-brand-ink">
+            Member created: {created.name}.
           </p>
           <p className="mt-1 text-brand-ink/70">
             Temporary credential (expires {new Date(created.temporaryCredentialExpiresAtUtc).toLocaleString()}):
@@ -377,6 +417,9 @@ function SupervisorCreateMemberCard() {
         </div>
       )}
       <form onSubmit={handleSubmit} noValidate className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <Input id="supervisor-member-name" label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" />
+        </div>
         <div className="flex-1">
           <Input id="supervisor-member-email" label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="member@example.com" />
         </div>
@@ -399,10 +442,39 @@ function SupervisorCreateMemberCard() {
 function SupervisorPresidentCard() {
   const societyId = readSessionInfo()?.societyId ?? "";
   const [userId, setUserId] = useState("");
+  const [roster, setRoster] = useState<SocietyMemberSummary[]>([]);
+  const [rosterLoading, setRosterLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmReason, setConfirmReason] = useState<string | null>(null);
+
+  // Populates the "Member" picker below with this society's roster so a
+  // Supervisor never has to know or type a member's raw User ID — they
+  // pick someone by email/phone and the matching GUID rides along as
+  // that <option>'s value, which is still what AssignSocietyPresident-
+  // Service's backend contract (POST .../president { UserId }) requires.
+  useEffect(() => {
+    let cancelled = false;
+    if (!societyId) {
+      setRosterLoading(false);
+      return;
+    }
+    setRosterLoading(true);
+    listSocietyMembers(societyId, 1, 100)
+      .then((response) => {
+        if (cancelled) return;
+        if (response.success && response.data) {
+          setRoster(response.data.items);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setRosterLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [societyId]);
 
   async function doAssign(confirm: boolean) {
     if (!societyId) {
@@ -478,7 +550,7 @@ function SupervisorPresidentCard() {
           onSubmit={(e) => {
             e.preventDefault();
             if (!userId.trim()) {
-              setError("Enter the member's User ID.");
+              setError("Select a member.");
               return;
             }
             setNotice(null);
@@ -488,9 +560,27 @@ function SupervisorPresidentCard() {
           className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end"
         >
           <div className="flex-1">
-            <Input id="president-user-id" label="Member User ID" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="00000000-0000-0000-0000-000000000000" />
+            <label htmlFor="president-member" className="mb-1 block text-sm font-medium text-brand-ink">
+              Member
+            </label>
+            <select
+              id="president-member"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+              disabled={rosterLoading}
+              className="w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:bg-white focus:ring-2 focus:ring-brand-gold/30"
+            >
+              <option value="">
+                {rosterLoading ? "Loading members…" : "Select a member"}
+              </option>
+              {roster.map((member) => (
+                <option key={member.userId} value={member.userId}>
+                  {member.name || member.email || member.phoneNumber || "Member"}
+                </option>
+              ))}
+            </select>
           </div>
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" disabled={submitting || !userId}>
             {submitting ? "Assigning…" : "Assign President"}
           </Button>
           <Button type="button" variant="outline" disabled={submitting} onClick={handleRevoke}>

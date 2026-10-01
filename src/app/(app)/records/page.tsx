@@ -63,6 +63,10 @@ export default function RecordsPage() {
         {profile && (
           <dl className="grid max-w-lg grid-cols-1 gap-4 rounded-2xl border border-brand-line bg-surface-card p-5 sm:grid-cols-2">
             <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-brand-ink/50">Name</dt>
+              <dd className="mt-1 text-sm text-brand-ink">{profile.name || "—"}</dd>
+            </div>
+            <div>
               <dt className="text-xs font-semibold uppercase tracking-wide text-brand-ink/50">Email</dt>
               <dd className="mt-1 text-sm text-brand-ink">{profile.email || "—"}</dd>
             </div>
@@ -73,10 +77,6 @@ export default function RecordsPage() {
             <div>
               <dt className="text-xs font-semibold uppercase tracking-wide text-brand-ink/50">Roles</dt>
               <dd className="mt-1 text-sm text-brand-ink">{profile.roles.join(", ") || "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-brand-ink/50">User ID</dt>
-              <dd className="mt-1 font-mono text-xs text-brand-ink/60">{profile.userId}</dd>
             </div>
           </dl>
         )}

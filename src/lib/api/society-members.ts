@@ -7,6 +7,7 @@ import { apiGet, type ApiEnvelope } from "@/lib/api-client";
 export interface SocietyMemberSummary {
   userId: string;
   societyId: string;
+  name: string | null;
   email: string | null;
   phoneNumber: string | null;
   roles: string[];

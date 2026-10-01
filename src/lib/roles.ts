@@ -92,10 +92,13 @@ export const NAV_ITEMS: NavItem[] = [
   {
     label: "Audit Log",
     href: "/audit-log",
-    // DeveloperSuperadminAuditLogsController — Developer Superadmin
-    // only, NOT Onward Superadmin, despite the name suggesting a
-    // shared umbrella-wide log.
-    roles: ["developer_superadmin"],
+    // Developer Superadmin sees its own private trail
+    // (DeveloperSuperadminAuditLogsController); Onward Superadmin sees a
+    // separate, filterable, umbrella-wide log
+    // (OnwardSuperadminAuditLogsController) that deliberately excludes
+    // the Developer Superadmin's private events — see (app)/audit-log/
+    // page.tsx, which picks the endpoint per session.role.
+    roles: ["developer_superadmin", "onward_superadmin"],
   },
 ];
 
