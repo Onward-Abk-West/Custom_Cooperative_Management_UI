@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { ApiError } from "@/lib/api-client";
 import { getSociety, type SocietySummary } from "@/lib/api/societies";
 import { createMemberAsDeveloperSuperadmin, type CreatedMemberData } from "@/lib/api/members";
+import { listSocietyMembers, type SocietyMemberSummary } from "@/lib/api/society-members";
 import {
   assignSupervisor,
   assignPresident,
@@ -25,18 +26,19 @@ import { readSessionInfo } from "@/lib/session";
  * Superadmin — a Supervisor only ever sees their own society via the
  * sidebar's non-switcher path and doesn't get this admin view).
  *
- * Two real gaps in the current backend surface shape this page:
- *  - There is no "who is this society's current Supervisor/President"
- *    read endpoint, and no "list members of a society" endpoint either.
- *    So assignment is a raw User ID (GUID) field, not a picker — the
- *    only way to *discover* a member's ID today is from the response of
- *    creating them (shown right after "Create member" below) or from
- *    GET /api/v1/members/{id} if it's already known.
+ * One real gap in the current backend surface shapes this page: there is
+ * no "who is this society's current Supervisor/President" read endpoint,
+ * so the assignment cards below can't pre-select or display who already
+ * holds each role — only assign/revoke against the roster.
  *  - Only Developer Superadmin can create a member into an arbitrary
  *    society (POST .../developer-superadmin/societies/{id}/members).
  *    Onward Superadmin has no create-member endpoint at all — only
  *    assign/revoke Supervisor and President — so that form only renders
  *    for a Developer Superadmin viewer.
+ *
+ * Supervisor/President assignment picks a member by name from this
+ * society's own roster (GET /api/v1/societies/{id}/members) — never a
+ * raw User ID — matching the picker already used in (app)/members.
  */
 export default function SocietyDetailPage({
   params,
@@ -53,6 +55,9 @@ export default function SocietyDetailPage({
   const [society, setSociety] = useState<SocietySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [roster, setRoster] = useState<SocietyMemberSummary[]>([]);
+  const [rosterLoading, setRosterLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,6 +78,28 @@ export default function SocietyDetailPage({
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [societyId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setRosterLoading(true);
+    listSocietyMembers(societyId, 1, 100)
+      .then((response) => {
+        if (cancelled) return;
+        if (response.success && response.data) {
+          setRoster(response.data.items);
+        }
+      })
+      .catch(() => {
+        // The assignment forms still work with an empty roster — the
+        // dropdown just shows nothing to pick from.
+      })
+      .finally(() => {
+        if (!cancelled) setRosterLoading(false);
       });
     return () => {
       cancelled = true;
@@ -108,6 +135,8 @@ export default function SocietyDetailPage({
       <RoleAssignmentCard
         title="Supervisor"
         description="One Supervisor per society. Assigning a new Supervisor when one already exists — or when the target member currently holds President — requires confirming the change."
+        roster={roster}
+        rosterLoading={rosterLoading}
         assign={(userId, confirm) => assignSupervisor(scope, societyId, userId, confirm)}
         revoke={() => revokeSupervisor(scope, societyId)}
       />
@@ -115,6 +144,8 @@ export default function SocietyDetailPage({
       <RoleAssignmentCard
         title="President"
         description="One President per society, mutually exclusive with Supervisor. Assigning a new President when one already exists requires confirming the change."
+        roster={roster}
+        rosterLoading={rosterLoading}
         assign={(userId, confirm) => assignPresident(scope, societyId, userId, confirm)}
         revoke={() => revokePresident(scope, societyId)}
       />
@@ -123,6 +154,7 @@ export default function SocietyDetailPage({
 }
 
 function CreateMemberCard({ societyId }: { societyId: string }) {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -134,12 +166,13 @@ function CreateMemberCard({ societyId }: { societyId: string }) {
     setError(null);
     setSubmitting(true);
     try {
-      const response = await createMemberAsDeveloperSuperadmin(societyId, email, phoneNumber);
+      const response = await createMemberAsDeveloperSuperadmin(societyId, name, email, phoneNumber);
       if (!response.success || !response.data) {
         setError(response.message || "The member could not be created.");
         return;
       }
       setCreated(response.data);
+      setName("");
       setEmail("");
       setPhoneNumber("");
     } catch (err) {
@@ -161,10 +194,7 @@ function CreateMemberCard({ societyId }: { societyId: string }) {
 
       {created && (
         <div className="mt-4 rounded-xl border border-brand-gold/40 bg-brand-gold/10 p-4 text-sm">
-          <p className="font-semibold text-brand-ink">Member created.</p>
-          <p className="mt-1 text-brand-ink/70">
-            User ID: <span className="font-mono text-xs">{created.userId}</span>
-          </p>
+          <p className="font-semibold text-brand-ink">Member created: {created.name}.</p>
           <p className="mt-1 text-brand-ink/70">
             Temporary credential (share this with the member — it expires{" "}
             {new Date(created.temporaryCredentialExpiresAtUtc).toLocaleString()}):
@@ -176,6 +206,15 @@ function CreateMemberCard({ societyId }: { societyId: string }) {
       )}
 
       <form onSubmit={handleSubmit} noValidate className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <Input
+            id={`member-name-${societyId}`}
+            label="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Full name"
+          />
+        </div>
         <div className="flex-1">
           <Input
             id={`member-email-${societyId}`}
@@ -212,11 +251,15 @@ function CreateMemberCard({ societyId }: { societyId: string }) {
 function RoleAssignmentCard({
   title,
   description,
+  roster,
+  rosterLoading,
   assign,
   revoke,
 }: {
   title: string;
   description: string;
+  roster: SocietyMemberSummary[];
+  rosterLoading: boolean;
   assign: (userId: string, confirm: boolean) => Promise<AssignmentResult>;
   revoke: () => Promise<ApiEnvelope<unknown>>;
 }) {
@@ -257,7 +300,7 @@ function RoleAssignmentCard({
   async function handleAssignSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!userId.trim()) {
-      setError("Enter the member's User ID.");
+      setError("Select a member.");
       return;
     }
     setNotice(null);
@@ -311,15 +354,27 @@ function RoleAssignmentCard({
       ) : (
         <form onSubmit={handleAssignSubmit} noValidate className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <Input
-              id={`${title}-user-id`}
-              label="Member User ID"
+            <label htmlFor={`${title}-member`} className="mb-1 block text-sm font-medium text-brand-ink">
+              Member
+            </label>
+            <select
+              id={`${title}-member`}
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
-              placeholder="00000000-0000-0000-0000-000000000000"
-            />
+              disabled={rosterLoading}
+              className="w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:bg-white focus:ring-2 focus:ring-brand-gold/30"
+            >
+              <option value="">
+                {rosterLoading ? "Loading members…" : "Select a member"}
+              </option>
+              {roster.map((member) => (
+                <option key={member.userId} value={member.userId}>
+                  {member.name || member.email || member.phoneNumber || "Member"}
+                </option>
+              ))}
+            </select>
           </div>
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" disabled={submitting || !userId}>
             {submitting ? "Assigning…" : `Assign ${title}`}
           </Button>
           <Button type="button" variant="outline" disabled={submitting} onClick={handleRevoke}>
