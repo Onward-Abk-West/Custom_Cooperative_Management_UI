@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { isSuperadmin, navItemsForRole, ROLE_LABELS, type Role } from "@/lib/roles";
 import type { Society } from "@/lib/mock-session";
 import { listSocieties } from "@/lib/api/societies";
+import { logout } from "@/lib/session";
+import { useSociety } from "@/lib/society-context";
 import { CooperativeMark } from "@/components/illustrations/CooperativeMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { navIconFor } from "@/components/NavIcons";
@@ -73,6 +75,33 @@ function CloseIcon(props: { className?: string }) {
   );
 }
 
+function LogoutIcon(props: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={props.className} aria-hidden="true">
+      <path d="M15 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3" />
+      <path d="M10 17l5-5-5-5" />
+      <path d="M15 12H3" />
+    </svg>
+  );
+}
+
+function PlusIcon(props: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={props.className} aria-hidden="true">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+function SettingsIcon(props: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={props.className} aria-hidden="true">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+  );
+}
+
 function ChevronIcon({ collapsed, className }: { collapsed: boolean; className?: string }) {
   return (
     <svg
@@ -102,14 +131,12 @@ function ChevronIcon({ collapsed, className }: { collapsed: boolean; className?:
 export function Sidebar({
   role,
   societies,
-  currentSocietyId,
   userName,
   mobileOpen,
   onCloseMobile,
 }: {
   role: Role;
   societies: Society[];
-  currentSocietyId: string;
   userName: string;
   mobileOpen: boolean;
   onCloseMobile: () => void;
@@ -121,7 +148,22 @@ export function Sidebar({
   );
   const pathname = usePathname();
   const items = navItemsForRole(role);
-  const [societyId, setSocietyId] = useState(currentSocietyId);
+  // The switcher below writes here, and any page (Members, in
+  // particular) reads the same value back via useSociety() — see
+  // src/lib/society-context.tsx. This replaces what used to be local
+  // state that nothing outside Sidebar could see.
+  const { societyId, setSocietyId } = useSociety();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    // logout() (src/lib/session.ts) ends with a hard navigation to
+    // /login on success, so there's normally nothing to reset this
+    // state back for — it's here only to guard against a second click
+    // while the (best-effort) revoke call is in flight.
+    await logout();
+  }
 
   // The (app)/layout.tsx server component can't fetch this itself (no
   // access to the in-memory access token — see its own comment), so for
@@ -214,6 +256,34 @@ export function Sidebar({
                 </option>
               ))}
             </select>
+
+            <div className="mt-2 flex items-center gap-3">
+              {societyId && (
+                <Link
+                  href={`/societies/${societyId}`}
+                  onClick={onCloseMobile}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-ink/60 transition hover:text-brand-ink"
+                >
+                  <SettingsIcon className="h-3.5 w-3.5" />
+                  Manage
+                </Link>
+              )}
+              {/* Only Developer Superadmin can create a society — decided,
+                  not Onward Superadmin, per the PRD (society count is
+                  dynamic but society creation stays Developer-only). See
+                  DeveloperSuperadminSocietiesController's [Authorize] on
+                  the backend, which this mirrors exactly. */}
+              {role === "developer_superadmin" && (
+                <Link
+                  href="/societies/new"
+                  onClick={onCloseMobile}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-gold-dark transition hover:underline"
+                >
+                  <PlusIcon className="h-3.5 w-3.5" />
+                  New society
+                </Link>
+              )}
+            </div>
           </div>
         )}
 
@@ -262,6 +332,17 @@ export function Sidebar({
             )}
             <ThemeToggle className="!h-8 !w-8 shrink-0" />
           </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            title={collapsed ? "Log out" : undefined}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-brand-line py-1.5 text-xs font-medium text-brand-ink/60 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600 disabled:opacity-60"
+          >
+            <LogoutIcon className="h-4 w-4" />
+            {!collapsed && (loggingOut ? "Logging out…" : "Log out")}
+          </button>
 
           <button
             type="button"

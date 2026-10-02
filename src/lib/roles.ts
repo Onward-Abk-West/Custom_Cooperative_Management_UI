@@ -3,17 +3,28 @@
  *
  *   - Developer superadmin: full in-app control, no Member entity of
  *     its own, own audit trail visible only to itself.
- *   - Onward superadmin: the business owner — creates societies,
- *     assigns Supervisors, views (shared) audit logs.
+ *   - Onward superadmin: the business owner — assigns Supervisors,
+ *     views audit logs. Cannot create a society: per the PRD decision,
+ *     society creation stays Developer-Superadmin-only even though
+ *     society count is dynamic (DeveloperSuperadminSocietiesController's
+ *     [Authorize] on the backend enforces this — an earlier version of
+ *     this comment said Onward Superadmin could create societies; it
+ *     couldn't, on the backend, and that was the bug, not this line).
  *   - Per society: one Supervisor, one President (mutually exclusive —
  *     a person holds one or the other, not both), at least four
  *     Admins, and many Members. Society data is isolated: only a
  *     superadmin can see across societies.
- *   - PIN-reset approval is a Supervisor+President responsibility, not
- *     Admin — see src/app/forgot-pin/page.tsx.
+ *   - PIN-reset approval is a Supervisor/President/superadmin
+ *     responsibility (any one of them, not a joint approval) — not
+ *     Admin. A Member requests one from My Records while signed in;
+ *     see src/lib/api/pin-reset.ts and src/app/forgot-pin/page.tsx.
+ *   - Profile-change review is an Admin responsibility — a Member has
+ *     no self-service profile edit, only a request an Admin approves
+ *     or rejects. See src/lib/api/profile-update-requests.ts.
  *
- * There is no real auth/session yet (see src/lib/mock-session.ts), so
- * this file is the shape the app shell renders against, not live data.
+ * getMockSession() (src/lib/mock-session.ts) is now only a fallback for
+ * a session cookie without session-info — see (app)/layout.tsx — not
+ * the everyday path, now that real login/session.ts exist.
  */
 export type Role =
   | "developer_superadmin"
@@ -49,27 +60,51 @@ export const NAV_ITEMS: NavItem[] = [
   {
     label: "Members",
     href: "/members",
-    roles: ["admin", "supervisor", "president"],
+    // GET /api/v1/members/{id}'s full reader list, per MemberProfilesController.
+    roles: ["admin", "supervisor", "president", "developer_superadmin", "onward_superadmin"],
   },
   {
     label: "Financial Records",
     href: "/financial-records",
-    roles: ["admin", "supervisor", "president"],
+    // POST-only create endpoint now exists (FinancialTransactionsControllers)
+    // for exactly these two roles — Admin (own society, implicit) and
+    // Developer Superadmin (any society, via the sidebar switcher).
+    // Supervisor, President and Onward Superadmin have no create
+    // endpoint and no list/read endpoint exists for anyone yet, so this
+    // nav item — and (app)/financial-records/page.tsx — stays limited
+    // to a create form for just these two roles.
+    roles: ["admin", "developer_superadmin"],
   },
   {
     label: "PIN Reset Requests",
     href: "/pin-resets",
-    roles: ["supervisor", "president"],
+    // Matches PinResetRequestsController's [Authorize(Roles = ...)] exactly.
+    roles: ["supervisor", "president", "developer_superadmin", "onward_superadmin"],
   },
   {
-    label: "Societies",
-    href: "/societies",
-    roles: ["onward_superadmin", "developer_superadmin"],
+    label: "Profile Update Requests",
+    href: "/profile-requests",
+    // AdminProfileUpdateRequestsController — Admin only.
+    roles: ["admin"],
   },
+  // No standalone "Societies" nav item — the sidebar's society switcher
+  // (Sidebar.tsx, superadmin roles only) now owns switching societies,
+  // with "Manage" (→ /societies/[id], the Supervisor/President
+  // assignment forms) and "New society" (Developer Superadmin only)
+  // links right beside it. /societies/new and /societies/[id] still
+  // exist — just reached from the switcher instead of a nav item; the
+  // old list-all-societies table (/societies) isn't linked from
+  // anywhere in the UI anymore.
   {
     label: "Audit Log",
     href: "/audit-log",
-    roles: ["onward_superadmin", "developer_superadmin"],
+    // Developer Superadmin sees its own private trail
+    // (DeveloperSuperadminAuditLogsController); Onward Superadmin sees a
+    // separate, filterable, umbrella-wide log
+    // (OnwardSuperadminAuditLogsController) that deliberately excludes
+    // the Developer Superadmin's private events — see (app)/audit-log/
+    // page.tsx, which picks the endpoint per session.role.
+    roles: ["developer_superadmin", "onward_superadmin"],
   },
 ];
 
