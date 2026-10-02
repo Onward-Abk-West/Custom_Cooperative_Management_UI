@@ -3,7 +3,9 @@ import { apiGet, type ApiEnvelope } from "@/lib/api-client";
 /** Matches AbkWestCoop.Contracts.Members.Responses.SocietyMemberResponseData.
  * `roles` is the user's full role set within the society — Member,
  * Admin, Supervisor and President can all appear here; this is the
- * whole roster, not a Member-only list. */
+ * whole roster, not a Member-only list. `status` is one of
+ * MEMBER_STATUS_VALUES (see api/member-status.ts), defaulting to
+ * "Active" on the backend. */
 export interface SocietyMemberSummary {
   userId: string;
   societyId: string;
@@ -11,6 +13,7 @@ export interface SocietyMemberSummary {
   email: string | null;
   phoneNumber: string | null;
   roles: string[];
+  status: string;
 }
 
 export interface ListSocietyMembersData {

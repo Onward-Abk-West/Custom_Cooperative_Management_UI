@@ -1,6 +1,8 @@
 import { apiGet, apiPost, apiPut, type ApiEnvelope } from "@/lib/api-client";
 
-/** Matches AbkWestCoop.Contracts.Members.Responses.MemberProfileResponseData. */
+/** Matches AbkWestCoop.Contracts.Members.Responses.MemberProfileResponseData.
+ * `status` is one of MEMBER_STATUS_VALUES (see api/member-status.ts) —
+ * "Active" unless the backend says otherwise. */
 export interface MemberProfileData {
   userId: string;
   societyId: string;
@@ -8,6 +10,7 @@ export interface MemberProfileData {
   email: string | null;
   phoneNumber: string | null;
   roles: string[];
+  status: string;
 }
 
 /** GET /api/v1/members/me — Member role only. */

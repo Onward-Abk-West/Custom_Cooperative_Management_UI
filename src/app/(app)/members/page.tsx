@@ -238,6 +238,7 @@ function MembersRoster({
               <TableHeaderCell>Email</TableHeaderCell>
               <TableHeaderCell>Phone</TableHeaderCell>
               <TableHeaderCell>Roles</TableHeaderCell>
+              <TableHeaderCell>Status</TableHeaderCell>
               <TableHeaderCell className="text-right">Actions</TableHeaderCell>
             </TableRow>
           </TableHead>
@@ -248,6 +249,7 @@ function MembersRoster({
                 <TableCell>{member.email || "—"}</TableCell>
                 <TableCell>{member.phoneNumber || "—"}</TableCell>
                 <TableCell>{member.roles.join(", ") || "—"}</TableCell>
+                <TableCell>{member.status}</TableCell>
                 <TableCell className="text-right">
                   <Link
                     href={`/members/${member.userId}`}

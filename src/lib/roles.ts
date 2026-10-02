@@ -66,8 +66,14 @@ export const NAV_ITEMS: NavItem[] = [
   {
     label: "Financial Records",
     href: "/financial-records",
-    // No backend endpoint exists for this yet — nav placeholder only.
-    roles: ["admin", "supervisor", "president"],
+    // POST-only create endpoint now exists (FinancialTransactionsControllers)
+    // for exactly these two roles — Admin (own society, implicit) and
+    // Developer Superadmin (any society, via the sidebar switcher).
+    // Supervisor, President and Onward Superadmin have no create
+    // endpoint and no list/read endpoint exists for anyone yet, so this
+    // nav item — and (app)/financial-records/page.tsx — stays limited
+    // to a create form for just these two roles.
+    roles: ["admin", "developer_superadmin"],
   },
   {
     label: "PIN Reset Requests",

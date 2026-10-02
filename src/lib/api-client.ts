@@ -240,3 +240,15 @@ export function apiDelete<T = unknown>(
 ) {
   return apiFetch<T>(path, { ...options, method: "DELETE" });
 }
+
+export function apiPatch<T = unknown>(
+  path: string,
+  data?: unknown,
+  options?: ApiFetchOptions
+) {
+  return apiFetch<T>(path, {
+    ...options,
+    method: "PATCH",
+    body: data !== undefined ? JSON.stringify(data) : undefined,
+  });
+}
