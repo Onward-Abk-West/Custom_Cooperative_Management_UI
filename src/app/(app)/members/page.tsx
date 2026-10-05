@@ -245,7 +245,23 @@ function MembersRoster({
           <TableBody>
             {visibleItems.map((member) => (
               <TableRow key={member.userId}>
-                <TableCell>{member.name || "—"}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    {member.profilePictureUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={member.profilePictureUrl}
+                        alt=""
+                        className="h-7 w-7 rounded-full border border-brand-line object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full border border-brand-line bg-brand-line/25 text-xs font-semibold text-brand-ink/50">
+                        {(member.name || member.email || "?").charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {member.name || "—"}
+                  </div>
+                </TableCell>
                 <TableCell>{member.email || "—"}</TableCell>
                 <TableCell>{member.phoneNumber || "—"}</TableCell>
                 <TableCell>{member.roles.join(", ") || "—"}</TableCell>

@@ -141,10 +141,24 @@ export default function MemberDetailPage({
         <Link href="/members" className="text-sm font-medium text-brand-gold-dark hover:underline">
           ← Look up another member
         </Link>
-        <h1 className="font-heading mt-2 text-2xl font-bold text-brand-ink">
-          {profile.name || profile.email || profile.phoneNumber || "Member"}
-        </h1>
-        <p className="mt-1 text-sm text-brand-ink/60">Roles: {profile.roles.join(", ") || "—"}</p>
+        <div className="mt-2 flex items-center gap-3">
+          {profile.profilePictureUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={profile.profilePictureUrl}
+              alt=""
+              className="h-12 w-12 rounded-full border border-brand-line object-cover"
+            />
+          ) : (
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-brand-line bg-brand-line/25 text-sm font-semibold text-brand-ink/50">
+              {(profile.name || profile.email || "?").charAt(0).toUpperCase()}
+            </div>
+          )}
+          <h1 className="font-heading text-2xl font-bold text-brand-ink">
+            {profile.name || profile.email || profile.phoneNumber || "Member"}
+          </h1>
+        </div>
+        <p className="mt-2 text-sm text-brand-ink/60">Roles: {profile.roles.join(", ") || "—"}</p>
         <p className="mt-1 text-sm text-brand-ink/60">Status: {profile.status}</p>
       </div>
 
