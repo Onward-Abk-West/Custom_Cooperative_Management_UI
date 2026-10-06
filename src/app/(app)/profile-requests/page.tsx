@@ -109,7 +109,7 @@ export default function ProfileRequestsPage() {
 
       {notice && <p className="text-sm text-brand-green">{notice}</p>}
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm font-semibold text-status-bad">
           {error}
         </p>
       )}

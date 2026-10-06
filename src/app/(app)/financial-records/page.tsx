@@ -220,7 +220,7 @@ function TransactionForm({
             value={memberId}
             onChange={(e) => setMemberId(e.target.value)}
             disabled={rosterLoading}
-            className="w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:bg-white focus:ring-2 focus:ring-brand-gold/30"
+            className="w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:bg-brand-cream focus:ring-2 focus:ring-brand-gold/30"
           >
             <option value="">{rosterLoading ? "Loading members…" : "Select a member"}</option>
             {roster.map((member) => (
@@ -239,7 +239,7 @@ function TransactionForm({
             id="transaction-category"
             value={category}
             onChange={(e) => setCategory(e.target.value as FinancialCategory)}
-            className="w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:bg-white focus:ring-2 focus:ring-brand-gold/30"
+            className="w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:bg-brand-cream focus:ring-2 focus:ring-brand-gold/30"
           >
             {FINANCIAL_CATEGORIES.map((value) => (
               <option key={value} value={value}>
@@ -278,7 +278,7 @@ function TransactionForm({
         </Button>
       </form>
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-600">
+        <p role="alert" className="mt-2 text-sm font-semibold text-status-bad">
           {error}
         </p>
       )}
@@ -385,7 +385,7 @@ function RecordedTransactionCard({
               id={`edit-category-${current.id}`}
               value={category}
               onChange={(e) => setCategory(e.target.value as FinancialCategory)}
-              className="w-full rounded-full border border-brand-line bg-white px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/30"
+              className="w-full rounded-full border border-brand-line bg-brand-cream px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/30"
             >
               {FINANCIAL_CATEGORIES.map((value) => (
                 <option key={value} value={value}>
@@ -429,7 +429,7 @@ function RecordedTransactionCard({
 
       {notice && <p className="mt-2 text-sm text-brand-green">{notice}</p>}
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-600">
+        <p role="alert" className="mt-2 text-sm font-semibold text-status-bad">
           {error}
         </p>
       )}

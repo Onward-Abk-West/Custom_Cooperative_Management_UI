@@ -132,7 +132,7 @@ export default function PinResetsPage() {
               <p className="mt-1 text-brand-ink/70">
                 Reset credential (expires {new Date(credential.expiresAtUtc).toLocaleString()}):
               </p>
-              <p className="mt-1 select-all break-all rounded-lg bg-white/60 px-3 py-2 font-mono text-xs text-brand-ink">
+              <p className="mt-1 select-all break-all rounded-lg bg-brand-cream px-3 py-2 font-mono text-xs text-brand-ink">
                 {credential.resetCredential}
               </p>
             </div>
@@ -141,7 +141,7 @@ export default function PinResetsPage() {
       )}
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm font-semibold text-status-bad">
           {error}
         </p>
       )}

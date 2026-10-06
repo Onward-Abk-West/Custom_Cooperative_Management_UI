@@ -38,15 +38,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         ref={ref}
         aria-invalid={error ? true : undefined}
         aria-describedby={errorId}
-        className={`w-full rounded-full border bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none placeholder:text-brand-ink/50 focus:bg-white focus:ring-2 focus:ring-brand-gold/30 ${
+        className={`w-full rounded-full border bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none placeholder:text-brand-ink/50 focus:bg-brand-cream focus:ring-2 focus:ring-brand-gold/30 ${
           error
-            ? "border-red-400 focus:border-red-400"
+            ? "border-status-bad focus:border-status-bad"
             : "border-brand-line focus:border-brand-gold"
         } ${className}`}
         {...props}
       />
       {error && (
-        <p id={errorId} className="mt-1 text-xs text-red-600">
+        <p id={errorId} className="mt-1 text-sm font-semibold text-status-bad">
           {error}
         </p>
       )}

@@ -79,7 +79,7 @@ export default function NewSocietyPage() {
       </div>
 
       {umbrellaError ? (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm font-semibold text-status-bad">
           {umbrellaError}
         </p>
       ) : (
@@ -93,7 +93,7 @@ export default function NewSocietyPage() {
             disabled={!umbrellaId}
           />
           {error && (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm font-semibold text-status-bad">
               {error}
             </p>
           )}

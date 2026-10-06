@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import { Fraunces, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Body/UI face — a warmer, more characterful geometric sans than the
+// previous Geist (deliberately picked to move off the "safe default"
+// look: see brand v2 design notes in globals.css).
+const bodyFont = Plus_Jakarta_Sans({
+  variable: "--font-body",
   subsets: ["latin"],
 });
 
@@ -12,9 +15,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Classic serif for headings/wordmark — the "institutional ledger" feel,
-// distinct from the sans body text used for forms and UI chrome.
-const playfairDisplay = Playfair_Display({
+// Headings/wordmark — Fraunces, a soft-serif with ink-trap detailing.
+// Replaces Playfair Display: still reads as "institutional ledger",
+// but with more personality and less of the generic-elegant-serif
+// look Playfair has become the default pick for everywhere.
+const headingFont = Fraunces({
   variable: "--font-heading",
   subsets: ["latin"],
   weight: ["600", "700"],
@@ -38,7 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} h-full antialiased`}
+      className={`${bodyFont.variable} ${geistMono.variable} ${headingFont.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
