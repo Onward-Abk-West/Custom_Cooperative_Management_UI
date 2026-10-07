@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { CooperativeMark } from "@/components/illustrations/CooperativeMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 
 /**
  * Shared shell for every unauthenticated screen (login, PIN reset,
@@ -32,6 +33,7 @@ export function AuthCard({
       />
 
       <ThemeToggle className="absolute right-5 top-5 z-10" />
+      <InstallPrompt className="absolute left-5 top-5 z-10" />
 
       <div className="relative flex w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] bg-brand-cream shadow-2xl ring-1 ring-brand-line md:flex-row">
         <div className="relative flex w-full flex-col justify-between gap-10 rounded-b-[3rem] bg-gradient-to-br from-brand-green via-brand-green-dark to-brand-green-deep p-8 text-brand-cream md:w-[42%] md:rounded-b-none md:rounded-tr-[55%_100%] md:rounded-br-[55%_100%] md:p-10">

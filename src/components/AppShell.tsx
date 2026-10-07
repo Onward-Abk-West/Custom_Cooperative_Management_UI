@@ -5,6 +5,7 @@ import { Sidebar, MenuIcon } from "@/components/Sidebar";
 import type { Role } from "@/lib/roles";
 import type { Society } from "@/lib/mock-session";
 import { SocietyProvider } from "@/lib/society-context";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 
 /**
  * Composes the sidebar with the rest of the authenticated shell.
@@ -60,6 +61,7 @@ export function AppShell({
             <span className="font-heading truncate text-sm font-bold text-brand-green">
               Onward Abeokuta-West
             </span>
+            <InstallPrompt className="ml-auto shrink-0" />
           </header>
 
           <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
