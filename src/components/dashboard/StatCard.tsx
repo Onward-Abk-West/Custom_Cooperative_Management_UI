@@ -22,6 +22,8 @@ export interface StatCardProps {
   /** CSS color (a var(--chart-N) or var(--brand-*) token) for the
    * sparkline's current-period point. */
   accent?: string;
+  /** CSS color for the big figure. Defaults to the body ink. */
+  valueColor?: string;
 }
 
 function deltaSign(delta: string): 1 | -1 | 0 {
@@ -78,6 +80,7 @@ export function StatCard({
   deltaGoodDirection = "up",
   trend,
   accent = "var(--chart-1)",
+  valueColor = "var(--brand-ink)",
 }: StatCardProps) {
   const sign = delta ? deltaSign(delta) : 0;
   const isGood =
@@ -87,15 +90,22 @@ export function StatCard({
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-brand-line bg-surface-card p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wide text-heading">
-            {label}
-          </p>
-          <p className="mt-1.5 truncate text-2xl font-semibold text-brand-ink">
-            {value}
-          </p>
-        </div>
+      {/* Label gets its own full-width row so a long one ("Loans
+          outstanding") stays on a single line instead of wrapping
+          beside the sparkline; value and trend share the row below. */}
+      <p
+        title={label}
+        className="truncate text-xs font-bold uppercase tracking-wide text-label"
+      >
+        {label}
+      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p
+          className="min-w-0 truncate text-2xl font-bold"
+          style={{ color: valueColor }}
+        >
+          {value}
+        </p>
         {trend && trend.length >= 2 ? (
           <Sparkline values={trend} accent={accent} />
         ) : null}

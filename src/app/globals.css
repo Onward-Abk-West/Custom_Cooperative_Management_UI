@@ -92,6 +92,13 @@
      the body-text ink, so titles stand apart from the data under them.
      Mid-green in light mode; gold on black in dark mode. */
   --heading-ink: #0a7a42;
+  /* KPI tile label: green (matches the brand), while each tile's big
+     figure takes its own --stat-* tone below so the four read apart. */
+  --label-ink: #0a7a42;
+  --stat-green: #137a45;
+  --stat-red: #c62828;
+  --stat-blue: #2a69b3;
+  --stat-gold: #9a6a00;
   --table-head-bg: #0f4f31;
   --table-head-rule: #0a3622;
   --table-head-ink: #ffffff;
@@ -120,6 +127,7 @@
   --color-status-good: var(--status-good);
   --color-status-bad: var(--status-bad);
   --color-heading: var(--heading-ink);
+  --color-label: var(--label-ink);
   --color-table-head: var(--table-head-bg);
   --color-table-head-rule: var(--table-head-rule);
   --color-table-head-ink: var(--table-head-ink);
@@ -178,6 +186,11 @@
     /* True-black theme: neutral near-black surfaces (no purple cast),
        gold headings (13:1 on black), green accents. */
     --heading-ink: #ffc247;
+    --label-ink: #34c06e;
+    --stat-green: #4ade80;
+    --stat-red: #ff6b6b;
+    --stat-blue: #6db3ff;
+    --stat-gold: #ffc247;
     --table-head-bg: color-mix(in srgb, #ffc247 20%, #101512);
     --table-head-rule: #ffc247;
     --table-head-ink: #ffd479;
@@ -222,6 +235,16 @@
   --status-bad: #e6685c;
 
   --heading-ink: #ffc247;
+
+  --label-ink: #34c06e;
+
+  --stat-green: #4ade80;
+
+  --stat-red: #ff6b6b;
+
+  --stat-blue: #6db3ff;
+
+  --stat-gold: #ffc247;
   --table-head-bg: color-mix(in srgb, #ffc247 20%, #101512);
   --table-head-rule: #ffc247;
   --table-head-ink: #ffd479;

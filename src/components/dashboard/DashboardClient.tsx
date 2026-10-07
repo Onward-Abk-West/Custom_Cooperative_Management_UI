@@ -263,14 +263,16 @@ export function DashboardClient() {
           value={formatNaira(totalSavings)}
           delta={formatPct(totalSavingsDelta)}
           trend={savingsMonthly}
-          accent="var(--chart-1)"
+          accent="var(--stat-green)"
+          valueColor="var(--stat-green)"
         />
         <StatCard
           label="Loans outstanding"
           value={formatNaira(outstandingValue)}
           delta={formatPct(outstandingDelta)}
           trend={outstandingSeries}
-          accent="var(--chart-3)"
+          accent="var(--stat-red)"
+          valueColor="var(--stat-red)"
         />
         <StatCard
           label="Total members"
@@ -281,14 +283,16 @@ export function DashboardClient() {
               Object.values(MEMBER_COUNTS_PREV).reduce((a, b) => a + b, 0),
             totalMembers,
           ]}
-          accent="var(--chart-4)"
+          accent="var(--stat-blue)"
+          valueColor="var(--stat-blue)"
         />
         <StatCard
           label="Repayment rate"
           value={`${repaymentRateValue.toFixed(0)}%`}
           delta={`${repaymentRateDelta >= 0 ? "+" : ""}${repaymentRateDelta.toFixed(1)}pp`}
           trend={repaymentRateSeries}
-          accent="var(--chart-2)"
+          accent="var(--stat-gold)"
+          valueColor="var(--stat-gold)"
         />
       </div>
 
@@ -357,6 +361,12 @@ export function DashboardClient() {
         <BarChart
           data={barData}
           color="var(--chart-1)"
+          colors={[
+            "var(--stat-green)",
+            "var(--stat-red)",
+            "var(--stat-blue)",
+            "var(--stat-gold)",
+          ]}
           valueFormatter={formatNaira}
           highlightLabel={
             filters.societyId === "all" ? undefined : societyName(filters.societyId)

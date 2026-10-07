@@ -18,11 +18,15 @@ export interface BarDatum {
 export function BarChart({
   data,
   color = "var(--chart-1)",
+  colors,
   valueFormatter,
   highlightLabel,
 }: {
   data: BarDatum[];
   color?: string;
+  /** Optional per-bar colours, by row order (cycled). When given, each
+   * society keeps its own hue instead of every bar sharing `color`. */
+  colors?: string[];
   valueFormatter: (v: number) => string;
   /** When set, dims every bar except this one — the "emphasis" form
    * (choosing-a-form.md) used here to let the Society filter narrow
@@ -95,7 +99,7 @@ export function BarChart({
             />
             <path
               d={barPath(labelW, y0, Math.max(w, 4), barH, 4)}
-              fill={color}
+              fill={colors && colors.length > 0 ? colors[i % colors.length] : color}
               opacity={isDimmed ? 0.32 : isHover ? 1 : 0.9}
             />
             <text
