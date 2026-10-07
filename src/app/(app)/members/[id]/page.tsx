@@ -15,7 +15,6 @@ import {
   reissueMemberTemporaryCredential,
   type ReissuedCredentialData,
 } from "@/lib/api/member-temporary-credentials";
-import { assignSocietyAdmin, revokeSocietyAdmin } from "@/lib/api/society-admins";
 import { readSessionInfo } from "@/lib/session";
 import type { Role } from "@/lib/roles";
 
@@ -129,7 +128,7 @@ export default function MemberDetailPage({
 
   if (loadError || !profile) {
     return (
-      <p role="alert" className="text-sm text-red-600">
+      <p role="alert" className="text-sm font-semibold text-status-bad">
         {loadError || "Member not found."}
       </p>
     );
@@ -141,10 +140,24 @@ export default function MemberDetailPage({
         <Link href="/members" className="text-sm font-medium text-brand-gold-dark hover:underline">
           ← Look up another member
         </Link>
-        <h1 className="font-heading mt-2 text-2xl font-bold text-brand-ink">
-          {profile.name || profile.email || profile.phoneNumber || "Member"}
-        </h1>
-        <p className="mt-1 text-sm text-brand-ink/60">Roles: {profile.roles.join(", ") || "—"}</p>
+        <div className="mt-2 flex items-center gap-3">
+          {profile.profilePictureUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={profile.profilePictureUrl}
+              alt=""
+              className="h-12 w-12 rounded-full border border-brand-line object-cover"
+            />
+          ) : (
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-brand-line bg-brand-line/25 text-sm font-semibold text-brand-ink/50">
+              {(profile.name || profile.email || "?").charAt(0).toUpperCase()}
+            </div>
+          )}
+          <h1 className="font-heading text-2xl font-bold text-brand-ink">
+            {profile.name || profile.email || profile.phoneNumber || "Member"}
+          </h1>
+        </div>
+        <p className="mt-2 text-sm text-brand-ink/60">Roles: {profile.roles.join(", ") || "—"}</p>
         <p className="mt-1 text-sm text-brand-ink/60">Status: {profile.status}</p>
       </div>
 
@@ -170,7 +183,7 @@ export default function MemberDetailPage({
           onChange={(e) => setPhoneNumber(e.target.value)}
         />
         {saveError && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm font-semibold text-status-bad">
             {saveError}
           </p>
         )}
@@ -189,13 +202,13 @@ export default function MemberDetailPage({
             currentStatus={profile.status}
             onChanged={(status) => setProfile((p) => (p ? { ...p, status } : p))}
           />
-          <AdminRoleCard
-            scope={scope}
-            societyId={profile.societyId}
-            memberId={memberId}
-            roles={profile.roles}
-            onChanged={(roles) => setProfile((p) => (p ? { ...p, roles } : p))}
-          />
+          <div className="rounded-2xl border border-dashed border-brand-line bg-surface-card p-5 text-sm text-brand-ink/70">
+            Assign or revoke this member&apos;s Supervisor, President or Admin role from{" "}
+            <Link href="/assign-roles" className="font-medium text-brand-gold-dark hover:underline">
+              Assign Roles
+            </Link>{" "}
+            in the sidebar.
+          </div>
           <ReissueCredentialCard scope={scope} societyId={profile.societyId} memberId={memberId} />
         </>
       )}
@@ -265,7 +278,7 @@ function MemberStatusCard({
             id="member-status"
             value={status}
             onChange={(e) => setStatus(e.target.value as MemberStatusValue)}
-            className="w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:bg-white focus:ring-2 focus:ring-brand-gold/30"
+            className="w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:bg-brand-cream focus:ring-2 focus:ring-brand-gold/30"
           >
             {MEMBER_STATUS_VALUES.map((value) => (
               <option key={value} value={value}>
@@ -280,82 +293,7 @@ function MemberStatusCard({
       </form>
       {notice && <p className="mt-2 text-sm text-brand-green">{notice}</p>}
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-600">
-          {error}
-        </p>
-      )}
-    </section>
-  );
-}
-
-function AdminRoleCard({
-  scope,
-  societyId,
-  memberId,
-  roles,
-  onChanged,
-}: {
-  scope: MemberManagementScope;
-  societyId: string;
-  memberId: string;
-  roles: string[];
-  onChanged: (roles: string[]) => void;
-}) {
-  const isAdmin = roles.includes("Admin");
-  const eligible = isAdmin || roles.includes("Member");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-
-  if (!eligible) {
-    return null;
-  }
-
-  async function handleToggle() {
-    setError(null);
-    setNotice(null);
-    setSubmitting(true);
-    try {
-      const response = isAdmin
-        ? await revokeSocietyAdmin(scope, societyId, memberId)
-        : await assignSocietyAdmin(scope, societyId, memberId);
-      if (!response.success) {
-        setError(response.message || "The Admin role could not be changed.");
-        return;
-      }
-      onChanged(isAdmin ? roles.filter((r) => r !== "Admin") : [...roles, "Admin"]);
-      setNotice(response.message || (isAdmin ? "Admin role revoked." : "Admin role assigned."));
-    } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message || "The Admin role could not be changed."
-          : "Could not reach the server."
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <section className="rounded-2xl border border-brand-line bg-surface-card p-5">
-      <h2 className="font-heading text-lg font-bold text-brand-ink">Admin role</h2>
-      <p className="mt-1 text-sm text-brand-ink/60">
-        {isAdmin
-          ? "This member is an Admin for this society."
-          : "Grant this member the Admin role for this society."}
-      </p>
-      <Button
-        type="button"
-        variant={isAdmin ? "outline" : undefined}
-        disabled={submitting}
-        onClick={handleToggle}
-        className="mt-4"
-      >
-        {submitting ? "…" : isAdmin ? "Revoke Admin" : "Make Admin"}
-      </Button>
-      {notice && <p className="mt-2 text-sm text-brand-green">{notice}</p>}
-      {error && (
-        <p role="alert" className="mt-2 text-sm text-red-600">
+        <p role="alert" className="mt-2 text-sm font-semibold text-status-bad">
           {error}
         </p>
       )}
@@ -411,7 +349,7 @@ function ReissueCredentialCard({
             Temporary credential (expires{" "}
             {new Date(credential.temporaryCredentialExpiresAtUtc).toLocaleString()}):
           </p>
-          <p className="mt-1 select-all break-all rounded-lg bg-white/60 px-3 py-2 font-mono text-xs text-brand-ink">
+          <p className="mt-1 select-all break-all rounded-lg bg-brand-cream px-3 py-2 font-mono text-xs text-brand-ink">
             {credential.temporaryCredential}
           </p>
         </div>
@@ -421,7 +359,7 @@ function ReissueCredentialCard({
         {submitting ? "Reissuing…" : "Reissue temporary credential"}
       </Button>
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-600">
+        <p role="alert" className="mt-2 text-sm font-semibold text-status-bad">
           {error}
         </p>
       )}

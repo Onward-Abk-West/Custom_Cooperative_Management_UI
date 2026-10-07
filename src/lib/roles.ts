@@ -87,6 +87,17 @@ export const NAV_ITEMS: NavItem[] = [
     // AdminProfileUpdateRequestsController — Admin only.
     roles: ["admin"],
   },
+  {
+    label: "Assign Roles",
+    href: "/assign-roles",
+    // The one place Supervisor, President and Admin get assigned —
+    // Supervisor (own society, President + Admin only — the backend
+    // has no route for a Supervisor to change their own role) and
+    // Developer/Onward Superadmin (any society, all three). See
+    // (app)/assign-roles/page.tsx, which also enforces that Supervisor,
+    // President and Admin can never be held by the same person at once.
+    roles: ["supervisor", "developer_superadmin", "onward_superadmin"],
+  },
   // No standalone "Societies" nav item — the sidebar's society switcher
   // (Sidebar.tsx, superadmin roles only) now owns switching societies,
   // with "Manage" (→ /societies/[id], the Supervisor/President

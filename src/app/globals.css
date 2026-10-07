@@ -1,19 +1,34 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fbf5e6;
-  --foreground: #2b2117;
+  /* Tells the browser which native palette (light or dark) to paint
+     UA-rendered chrome with — scrollbars, and critically, a <select>
+     element's dropdown popup list, which the page's own CSS otherwise
+     can't reach at all. Without this, a dark-themed page still gets a
+     stark white native dropdown popup. Re-declared in the dark blocks
+     below so each theme gets its own native chrome too. */
+  color-scheme: light;
 
-  /* Cooperative brand palette — warm, "classic" institutional feel
-     rather than a generic SaaS blue/purple. Green = the land/societies,
-     gold = harvest/savings, cream = paper/ledger. */
-  --brand-green: #2f5230;
-  --brand-green-dark: #1f3a20;
+  --background: #f7f2e8;
+  --foreground: #211b3d;
+
+  /* Cooperative brand palette v2 — "Indigo & Gold".
+     Replaces the earlier green/gold/cream system (too close in hue —
+     both warm and earthy — to read as distinctive; see design notes).
+     Indigo (violet-blue) and gold sit near-opposite on the wheel, so
+     the pairing carries real visual tension instead of a single warm
+     family: indigo signals the institution/ledger side, gold keeps
+     the original harvest/savings color exactly as it was — reverted
+     to the original hex per request, after a brief "marigold" (more
+     saturated amber) detour didn't land. Cream stays as the paper
+     surface — still a cooperative ledger, just a bolder ink on it. */
+  --brand-green: #5b3fc4;
+  --brand-green-dark: #3c2a8e;
   --brand-gold: #d98c1f;
   --brand-gold-dark: #b9791c;
-  --brand-cream: #fbf5e6;
-  --brand-ink: #2b2117;
-  --brand-line: #e4d6b3;
+  --brand-cream: #f7f2e8;
+  --brand-ink: #211b3d;
+  --brand-line: #e3ded1;
 
   /* Opaque card/header surfaces — dashboard stat cards, chart cards,
      the filters bar, tables, the app-shell header. In light mode a
@@ -21,7 +36,7 @@
      same rgba(255,255,255,N) literal is illegible in dark mode (it
      blends into the near-black background instead of lifting off
      it), so dark mode swaps in a solid, visibly-lighter-than-background
-     brown instead of just thinning the same white overlay — see the
+     indigo instead of just thinning the same white overlay — see the
      dark block below. */
   --surface-card: rgba(255, 255, 255, 0.6);
   --surface-header: rgba(255, 255, 255, 0.7);
@@ -34,29 +49,40 @@
   --glass-surface-strong: rgba(255, 255, 255, 0.62);
   --glass-border: rgba(255, 255, 255, 0.55);
   --glass-highlight: rgba(255, 255, 255, 0.85);
-  --glass-shadow: rgba(43, 33, 23, 0.28);
+  --glass-shadow: rgba(33, 27, 61, 0.28);
   --glass-input: rgba(255, 255, 255, 0.38);
   --glass-input-border: rgba(255, 255, 255, 0.5);
 
-  /* Chart categorical palette — dashboard.md / dataviz skill.
-     5 hues, fixed order, validated with scripts/validate_palette.js
-     against this surface (#fbf5e6): ALL CHECKS PASS, one WARN (gold's
-     contrast vs surface is 2.3, below 3:1 — mitigated by always
-     pairing gold marks with a direct label or the table view, never
-     color alone). Slots 1 and 4 keep one hex across both themes;
-     slots 2, 3 and 5 need a different step per theme to clear the
-     lightness band and the CVD floor at once — see the dark block
-     below. Never used for status (good/bad) — that's --status-good
-     / --status-bad, a separate reserved scale. */
-  --chart-1: #3f7a3f; /* green — savings / primary series */
+  /* Chart categorical palette — dashboard.md / dataviz skill. 5 hues,
+     fixed order. Re-picked for the v2 identity and hand-checked for
+     WCAG contrast against this surface (#f7f2e8); slot 2 (gold) sits
+     at ~3:1 against the surface — the same WARN the old gold had —
+     [Evidence] measured, not [Hypothesis] — so it stays paired with a
+     direct label or the table view, never color alone, exactly as
+     before. CVD separation between hues follows standard hue-spacing
+     practice (indigo / gold / rose / teal / green are spread across
+     the wheel rather than clustered) but has NOT been run through
+     scripts/validate_palette.js this session — the dataviz skill's
+     script wasn't reachable from this environment. Re-run it before
+     treating the CVD claim as [Evidence] rather than [Strong
+     Inference]. Slot 1 (indigo) needs its own dark-mode step, unlike
+     the old palette's slot 1 — violet-blue hues have low relative
+     luminance even when visually vivid, so one hex can't clear the
+     contrast floor on both a light and a near-black surface; slot 4
+     (teal) still manages a single hex across both themes. Never used
+     for status (good/bad) — that's --status-good / --status-bad, a
+     separate reserved scale. */
+  --chart-1: #5b3fc4; /* indigo — savings / primary series */
   --chart-2: #d9971f; /* gold — loans / secondary series */
-  --chart-3: #c1592e; /* terracotta — disbursements */
-  --chart-4: #12967f; /* teal */
-  --chart-5: #5b4a8f; /* purple */
+  --chart-3: #c23b6b; /* raspberry — disbursements */
+  --chart-4: #15a090; /* teal */
+  --chart-5: #3f7d3f; /* forest green */
 
   /* Status is a small fixed scale, reserved meaning, never reused as
      a categorical slot — always paired with an icon + label, never
-     color alone (see StatCard's delta arrow). */
+     color alone (see StatCard's delta arrow). Left as the conventional
+     good=green / bad=red regardless of brand identity — that mapping
+     is a UX convention independent of the palette swap above. */
   --status-good: #1f7a34;
   --status-bad: #c8352a;
 }
@@ -82,7 +108,7 @@
   --color-chart-5: var(--chart-5);
   --color-status-good: var(--status-good);
   --color-status-bad: var(--status-bad);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-heading);
 }
@@ -101,33 +127,34 @@
  */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #17130c;
-    --foreground: #f3ead2;
-    --brand-green: #5a8a5c;
-    --brand-green-dark: #3f6b41;
+    color-scheme: dark;
+    --background: #171229;
+    --foreground: #f1ecfa;
+    --brand-green: #9385e8;
+    --brand-green-dark: #6c5bc9;
     --brand-gold: #eab04a;
     --brand-gold-dark: #ce9333;
-    --brand-cream: #241c12;
-    --brand-ink: #f3ead2;
-    --brand-line: #4a3c26;
+    --brand-cream: #211a3d;
+    --brand-ink: #f1ecfa;
+    --brand-line: #3c3463;
 
-    --glass-surface: rgba(23, 19, 12, 0.42);
-    --glass-surface-strong: rgba(23, 19, 12, 0.6);
+    --glass-surface: rgba(23, 18, 41, 0.42);
+    --glass-surface-strong: rgba(23, 18, 41, 0.6);
     --glass-border: rgba(255, 255, 255, 0.14);
     --glass-highlight: rgba(255, 255, 255, 0.2);
     --glass-shadow: rgba(0, 0, 0, 0.55);
     --glass-input: rgba(255, 255, 255, 0.08);
     --glass-input-border: rgba(255, 255, 255, 0.18);
 
-    /* Dark-mode chart palette — validated separately against this
-       surface (#241c12): ALL CHECKS PASS, one WARN (terracotta's
-       contrast vs surface is 2.58 — same relief requirement as
-       gold's light-mode WARN). Slots 1 and 4 are stable across
-       themes; 2, 3 and 5 re-step to clear the dark lightness band
-       (~0.48–0.67 L) without re-failing the CVD floor. */
+    /* Dark-mode chart palette — re-stepped against this surface
+       (#171229). Slot 1 (indigo) is re-stepped here too, matching
+       --brand-green's own dark value — see the design note above
+       the light-mode chart block for why. */
+    --chart-1: #9385e8;
     --chart-2: #ad881c;
-    --chart-3: #a8362a;
-    --chart-5: #8f7ad1;
+    --chart-3: #e0577f;
+    --chart-4: #2bc1af;
+    --chart-5: #5fa85f;
 
     --status-good: #4caf5c;
     --status-bad: #e6685c;
@@ -136,50 +163,74 @@
        alpha overlay, since a thin white wash over near-black just
        reads as "slightly less black," not as a distinct raised
        surface. */
-    --surface-card: #332818;
-    --surface-header: #3a2e1c;
+    --surface-card: #2a2250;
+    --surface-header: #302759;
   }
 }
 
 :root[data-theme="dark"] {
-  --background: #17130c;
-  --foreground: #f3ead2;
-  --brand-green: #5a8a5c;
-  --brand-green-dark: #3f6b41;
+  color-scheme: dark;
+  --background: #171229;
+  --foreground: #f1ecfa;
+  --brand-green: #9385e8;
+  --brand-green-dark: #6c5bc9;
   --brand-gold: #eab04a;
   --brand-gold-dark: #ce9333;
-  --brand-cream: #241c12;
-  --brand-ink: #f3ead2;
-  --brand-line: #4a3c26;
+  --brand-cream: #211a3d;
+  --brand-ink: #f1ecfa;
+  --brand-line: #3c3463;
 
-  --glass-surface: rgba(23, 19, 12, 0.42);
-  --glass-surface-strong: rgba(23, 19, 12, 0.6);
+  --glass-surface: rgba(23, 18, 41, 0.42);
+  --glass-surface-strong: rgba(23, 18, 41, 0.6);
   --glass-border: rgba(255, 255, 255, 0.14);
   --glass-highlight: rgba(255, 255, 255, 0.2);
   --glass-shadow: rgba(0, 0, 0, 0.55);
   --glass-input: rgba(255, 255, 255, 0.08);
   --glass-input-border: rgba(255, 255, 255, 0.18);
 
+  --chart-1: #9385e8;
   --chart-2: #ad881c;
-  --chart-3: #a8362a;
-  --chart-5: #8f7ad1;
+  --chart-3: #e0577f;
+  --chart-4: #2bc1af;
+  --chart-5: #5fa85f;
 
   --status-good: #4caf5c;
   --status-bad: #e6685c;
 
-  --surface-card: #332818;
-  --surface-header: #3a2e1c;
+  --surface-card: #2a2250;
+  --surface-header: #302759;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), "Segoe UI", Arial, Helvetica, sans-serif;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .font-heading {
-  font-family: var(--font-heading), Georgia, "Times New Roman", serif;
+  font-family: var(--font-heading), "Iowan Old Style", Georgia,
+    "Times New Roman", serif;
+}
+
+/* ---- Native form control theming ----------------------------------
+ * <select>'s dropdown popup is UA-rendered — page CSS can't reach
+ * inside it, and color-scheme above only gets it to a generic
+ * light/dark gray, not the brand's actual colors. Setting
+ * background-color/color directly on <option> is the one lever that
+ * also works for the popup's actual option rows in Chromium (the
+ * browser this app is primarily tested in); Firefox and Safari fall
+ * back to color-scheme's generic dark/light instead of these exact
+ * values, which is a reasonable degradation, not a broken control.
+ * Brand-cream/brand-ink rather than surface-card: the popup is a
+ * native layer outside the page's own stacking context, so a
+ * translucent rgba() token would composite against whatever the OS
+ * puts behind it (often white) instead of the page — these two are
+ * opaque in every theme, so the result is always correct. */
+select,
+select option {
+  background-color: var(--brand-cream);
+  color: var(--brand-ink);
 }
 
 /* ---- Glassmorphism primitives ------------------------------------

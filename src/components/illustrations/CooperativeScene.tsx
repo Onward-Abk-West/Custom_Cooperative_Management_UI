@@ -10,6 +10,15 @@
  * cooperative anyway. The illustration is deliberately literal instead:
  * wheat = the societies' agricultural base, joined hands = the
  * cooperative structure itself, sunrise = "Onward".
+ *
+ * Colors here are hand-picked hex literals, not CSS custom properties
+ * — unlike every other component in the app, this one does NOT pick
+ * up globals.css token changes automatically, so it was recolored by
+ * hand for the brand v2 ("Indigo & Gold") identity: the sky now runs
+ * pale gold to deep indigo instead of cream to mustard-gold, and the
+ * joined-hands dots alternate the two brand hues (indigo/gold)
+ * directly instead of green/brown. Gold stays the original hex here
+ * (not the brighter "marigold" tried briefly — reverted per request).
  */
 export function CooperativeScene({ className }: { className?: string }) {
   return (
@@ -22,17 +31,17 @@ export function CooperativeScene({ className }: { className?: string }) {
     >
       <defs>
         <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#FCEFD0" />
-          <stop offset="55%" stopColor="#F6D998" />
-          <stop offset="100%" stopColor="#E9B85A" />
+          <stop offset="0%" stopColor="#FBE9C6" />
+          <stop offset="48%" stopColor="#E9B85A" />
+          <stop offset="100%" stopColor="#5B3FC4" />
         </linearGradient>
         <linearGradient id="hill-far" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#7C9A5E" />
-          <stop offset="100%" stopColor="#5E7C46" />
+          <stop offset="0%" stopColor="#7A68C9" />
+          <stop offset="100%" stopColor="#5B46C4" />
         </linearGradient>
         <linearGradient id="hill-near" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#3F6B3A" />
-          <stop offset="100%" stopColor="#2F5230" />
+          <stop offset="0%" stopColor="#3C2A8E" />
+          <stop offset="100%" stopColor="#2A1D66" />
         </linearGradient>
       </defs>
 
@@ -60,15 +69,18 @@ export function CooperativeScene({ className }: { className?: string }) {
         })}
       </g>
 
-      {/* circle of joined hands — the cooperative */}
+      {/* circle of joined hands — the cooperative. Dots alternate the
+          two brand hues directly (indigo / gold) rather than
+          green/brown, so the hands read as "this cooperative's two
+          colors joined" rather than an incidental skin-tone palette. */}
       <g transform="translate(320 400)">
-        <circle r="58" fill="#FCEFD0" opacity="0.9" />
+        <circle r="58" fill="#FBE9C6" opacity="0.9" />
         <circle r="58" fill="none" stroke="#B9791C" strokeWidth="2" />
         {Array.from({ length: 6 }).map((_, i) => {
           const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
           const x = Math.cos(angle) * 34;
           const y = Math.sin(angle) * 34;
-          const hue = i % 2 === 0 ? "#3F6B3A" : "#8C5A2B";
+          const hue = i % 2 === 0 ? "#5B3FC4" : "#D98C1F";
           return (
             <g key={i} transform={`translate(${x} ${y})`}>
               <circle r="10" fill={hue} />

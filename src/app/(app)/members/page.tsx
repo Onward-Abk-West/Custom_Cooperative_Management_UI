@@ -19,11 +19,6 @@ import {
   type CreatedMemberData,
 } from "@/lib/api/members";
 import { listSocietyMembers, type SocietyMemberSummary } from "@/lib/api/society-members";
-import {
-  assignPresident,
-  revokePresident,
-  isConfirmationRequired,
-} from "@/lib/api/society-assignments";
 import { readSessionInfo } from "@/lib/session";
 import { useSociety } from "@/lib/society-context";
 import { isSuperadmin, type Role } from "@/lib/roles";
@@ -87,12 +82,7 @@ export default function MembersPage() {
         <MembersRoster societyId={societyId} filterText={filterText} />
       )}
 
-      {role === "supervisor" && (
-        <>
-          <SupervisorCreateMemberCard />
-          <SupervisorPresidentCard />
-        </>
-      )}
+      {role === "supervisor" && <SupervisorCreateMemberCard />}
 
       {role === "developer_superadmin" && societyId && (
         <DeveloperCreateMemberCard societyId={societyId} />
@@ -217,7 +207,7 @@ function MembersRoster({
       )}
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm font-semibold text-status-bad">
           {error}
         </p>
       )}
@@ -245,7 +235,23 @@ function MembersRoster({
           <TableBody>
             {visibleItems.map((member) => (
               <TableRow key={member.userId}>
-                <TableCell>{member.name || "—"}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    {member.profilePictureUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={member.profilePictureUrl}
+                        alt=""
+                        className="h-7 w-7 rounded-full border border-brand-line object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full border border-brand-line bg-brand-line/25 text-xs font-semibold text-brand-ink/50">
+                        {(member.name || member.email || "?").charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {member.name || "—"}
+                  </div>
+                </TableCell>
                 <TableCell>{member.email || "—"}</TableCell>
                 <TableCell>{member.phoneNumber || "—"}</TableCell>
                 <TableCell>{member.roles.join(", ") || "—"}</TableCell>
@@ -342,7 +348,7 @@ function DeveloperCreateMemberCard({ societyId }: { societyId: string }) {
             Temporary credential (share this with the member — it expires{" "}
             {new Date(created.temporaryCredentialExpiresAtUtc).toLocaleString()}):
           </p>
-          <p className="mt-1 select-all break-all rounded-lg bg-white/60 px-3 py-2 font-mono text-xs text-brand-ink">
+          <p className="mt-1 select-all break-all rounded-lg bg-brand-cream px-3 py-2 font-mono text-xs text-brand-ink">
             {created.temporaryCredential}
           </p>
         </div>
@@ -363,7 +369,7 @@ function DeveloperCreateMemberCard({ societyId }: { societyId: string }) {
         </Button>
       </form>
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-600">
+        <p role="alert" className="mt-2 text-sm font-semibold text-status-bad">
           {error}
         </p>
       )}
@@ -413,7 +419,7 @@ function SupervisorCreateMemberCard() {
           <p className="mt-1 text-brand-ink/70">
             Temporary credential (expires {new Date(created.temporaryCredentialExpiresAtUtc).toLocaleString()}):
           </p>
-          <p className="mt-1 select-all break-all rounded-lg bg-white/60 px-3 py-2 font-mono text-xs text-brand-ink">
+          <p className="mt-1 select-all break-all rounded-lg bg-brand-cream px-3 py-2 font-mono text-xs text-brand-ink">
             {created.temporaryCredential}
           </p>
         </div>
@@ -433,167 +439,7 @@ function SupervisorCreateMemberCard() {
         </Button>
       </form>
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-600">
-          {error}
-        </p>
-      )}
-    </section>
-  );
-}
-
-function SupervisorPresidentCard() {
-  const societyId = readSessionInfo()?.societyId ?? "";
-  const [userId, setUserId] = useState("");
-  const [roster, setRoster] = useState<SocietyMemberSummary[]>([]);
-  const [rosterLoading, setRosterLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [confirmReason, setConfirmReason] = useState<string | null>(null);
-
-  // Populates the "Member" picker below with this society's roster so a
-  // Supervisor never has to know or type a member's raw User ID — they
-  // pick someone by email/phone and the matching GUID rides along as
-  // that <option>'s value, which is still what AssignSocietyPresident-
-  // Service's backend contract (POST .../president { UserId }) requires.
-  useEffect(() => {
-    let cancelled = false;
-    if (!societyId) {
-      setRosterLoading(false);
-      return;
-    }
-    setRosterLoading(true);
-    listSocietyMembers(societyId, 1, 100)
-      .then((response) => {
-        if (cancelled) return;
-        if (response.success && response.data) {
-          setRoster(response.data.items);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setRosterLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [societyId]);
-
-  async function doAssign(confirm: boolean) {
-    if (!societyId) {
-      setError("Your society could not be determined from your session — try signing in again.");
-      return;
-    }
-    setError(null);
-    setSubmitting(true);
-    try {
-      const response = await assignPresident("supervisor", societyId, userId.trim(), confirm);
-      if (!response.success) {
-        setError(response.message || "President could not be assigned.");
-        return;
-      }
-      if (isConfirmationRequired(response.data)) {
-        setConfirmReason(response.data.reason);
-        return;
-      }
-      setNotice(response.message || "President assigned.");
-      setConfirmReason(null);
-      setUserId("");
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message || "President could not be assigned." : "Could not reach the server."
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleRevoke() {
-    if (!societyId) return;
-    setError(null);
-    setNotice(null);
-    setSubmitting(true);
-    try {
-      const response = await revokePresident("supervisor", societyId);
-      if (!response.success) {
-        setError(response.message || "President could not be revoked.");
-        return;
-      }
-      setNotice(response.message || "President revoked.");
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message || "President could not be revoked." : "Could not reach the server."
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <section className="max-w-lg rounded-2xl border border-brand-line bg-surface-card p-5">
-      <h2 className="font-heading text-lg font-bold text-brand-ink">President</h2>
-      <p className="mt-1 text-sm text-brand-ink/60">
-        Assign or revoke your society&apos;s President — mutually exclusive with Supervisor.
-      </p>
-
-      {confirmReason ? (
-        <div className="mt-4 rounded-xl border border-amber-400/50 bg-amber-50 p-4 text-sm text-amber-900">
-          <p className="font-semibold">Confirm this change ({confirmReason})</p>
-          <div className="mt-3 flex gap-2">
-            <Button type="button" disabled={submitting} onClick={() => doAssign(true)}>
-              {submitting ? "Confirming…" : "Confirm replacement"}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => setConfirmReason(null)}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!userId.trim()) {
-              setError("Select a member.");
-              return;
-            }
-            setNotice(null);
-            doAssign(false);
-          }}
-          noValidate
-          className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end"
-        >
-          <div className="flex-1">
-            <label htmlFor="president-member" className="mb-1 block text-sm font-medium text-brand-ink">
-              Member
-            </label>
-            <select
-              id="president-member"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              disabled={rosterLoading}
-              className="w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:bg-white focus:ring-2 focus:ring-brand-gold/30"
-            >
-              <option value="">
-                {rosterLoading ? "Loading members…" : "Select a member"}
-              </option>
-              {roster.map((member) => (
-                <option key={member.userId} value={member.userId}>
-                  {member.name || member.email || member.phoneNumber || "Member"}
-                </option>
-              ))}
-            </select>
-          </div>
-          <Button type="submit" disabled={submitting || !userId}>
-            {submitting ? "Assigning…" : "Assign President"}
-          </Button>
-          <Button type="button" variant="outline" disabled={submitting} onClick={handleRevoke}>
-            Revoke President
-          </Button>
-        </form>
-      )}
-
-      {notice && <p className="mt-2 text-sm text-brand-green">{notice}</p>}
-      {error && (
-        <p role="alert" className="mt-2 text-sm text-red-600">
+        <p role="alert" className="mt-2 text-sm font-semibold text-status-bad">
           {error}
         </p>
       )}

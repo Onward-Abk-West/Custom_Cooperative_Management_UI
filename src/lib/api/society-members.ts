@@ -5,7 +5,8 @@ import { apiGet, type ApiEnvelope } from "@/lib/api-client";
  * Admin, Supervisor and President can all appear here; this is the
  * whole roster, not a Member-only list. `status` is one of
  * MEMBER_STATUS_VALUES (see api/member-status.ts), defaulting to
- * "Active" on the backend. */
+ * "Active" on the backend. `profilePictureUrl` is read-only here — see
+ * the same note on MemberProfileData in api/members.ts. */
 export interface SocietyMemberSummary {
   userId: string;
   societyId: string;
@@ -14,6 +15,7 @@ export interface SocietyMemberSummary {
   phoneNumber: string | null;
   roles: string[];
   status: string;
+  profilePictureUrl: string | null;
 }
 
 export interface ListSocietyMembersData {

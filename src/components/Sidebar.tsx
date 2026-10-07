@@ -124,9 +124,10 @@ function ChevronIcon({ collapsed, className }: { collapsed: boolean; className?:
  * horizontal AppNav pills (src/components/AppNav.tsx, now unused —
  * same situation as src/app/(app)/page.tsx: flagged for deletion,
  * can't remove it myself). Two independent states: `collapsed`
- * (desktop icon-only rail, persisted) and `mobileOpen` (an ephemeral
- * off-canvas drawer below the lg breakpoint, controlled by
- * AppShell so the mobile header's hamburger button can open it too).
+ * (persisted icon-only rail, available from tablet up — md: and
+ * above) and `mobileOpen` (an ephemeral off-canvas drawer below the
+ * md breakpoint — phone widths only now — controlled by AppShell so
+ * the mobile header's hamburger button can open it too).
  */
 export function Sidebar({
   role,
@@ -208,7 +209,7 @@ export function Sidebar({
     <>
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/40 md:hidden"
           onClick={onCloseMobile}
           aria-hidden="true"
         />
@@ -216,9 +217,9 @@ export function Sidebar({
 
       <aside
         aria-label="Sidebar"
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-brand-line bg-surface-card transition-transform duration-200 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:translate-x-0 lg:transition-[width] ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-brand-line bg-brand-cream md:bg-surface-card transition-transform duration-200 md:sticky md:top-0 md:z-auto md:h-screen md:translate-x-0 md:transition-[width] ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
-        } ${collapsed ? "lg:w-[76px]" : "lg:w-64"}`}
+        } ${collapsed ? "md:w-[76px]" : "md:w-64"}`}
       >
         <div className="flex items-center gap-2 border-b border-brand-line px-4 py-4">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-green to-brand-gold-dark">
@@ -233,7 +234,7 @@ export function Sidebar({
             type="button"
             onClick={onCloseMobile}
             aria-label="Close menu"
-            className="ml-auto shrink-0 rounded-full p-1.5 text-brand-ink/60 transition hover:bg-brand-line/30 lg:hidden"
+            className="ml-auto shrink-0 rounded-full p-1.5 text-brand-ink/60 transition hover:bg-brand-line/30 md:hidden"
           >
             <CloseIcon className="h-5 w-5" />
           </button>
@@ -348,7 +349,7 @@ export function Sidebar({
             type="button"
             onClick={() => setSidebarCollapsed(!collapsed)}
             aria-pressed={collapsed}
-            className="mt-2 hidden w-full items-center justify-center gap-2 rounded-lg border border-brand-line py-1.5 text-xs font-medium text-brand-ink/60 transition hover:bg-brand-line/30 hover:text-brand-ink lg:flex"
+            className="mt-2 hidden w-full items-center justify-center gap-2 rounded-lg border border-brand-line py-1.5 text-xs font-medium text-brand-ink/60 transition hover:bg-brand-line/30 hover:text-brand-ink md:flex"
           >
             <ChevronIcon collapsed={collapsed} className="h-4 w-4" />
             {!collapsed && "Collapse"}

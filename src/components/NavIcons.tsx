@@ -85,6 +85,15 @@ function SocietiesIcon(props: IconProps) {
   );
 }
 
+function AssignRolesIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3.5 5 6.5v5c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9v-5L12 3.5Z" />
+      <path d="M9 12l2 2 4-4.5" />
+    </Icon>
+  );
+}
+
 function AuditIcon(props: IconProps) {
   return (
     <Icon {...props}>
@@ -110,6 +119,7 @@ export const NAV_ICONS: Record<string, (props: IconProps) => React.JSX.Element> 
   "/financial-records": LedgerIcon,
   "/pin-resets": PinResetIcon,
   "/societies": SocietiesIcon,
+  "/assign-roles": AssignRolesIcon,
   "/audit-log": AuditIcon,
 };
 

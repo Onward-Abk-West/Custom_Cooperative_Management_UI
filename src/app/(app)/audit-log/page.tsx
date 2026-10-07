@@ -102,7 +102,7 @@ function DeveloperAuditLogView() {
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm font-semibold text-status-bad">
           {error}
         </p>
       )}
@@ -218,7 +218,7 @@ function OnwardAuditLogView() {
   }, [societyId, actorRole, fromDate, toDate, pageNumber]);
 
   const selectClassName =
-    "w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:bg-white focus:ring-2 focus:ring-brand-gold/30";
+    "w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:bg-brand-cream focus:ring-2 focus:ring-brand-gold/30";
 
   function resetToFirstPage<T>(setter: (value: T) => void) {
     return (value: T) => {
@@ -320,7 +320,7 @@ function OnwardAuditLogView() {
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm font-semibold text-status-bad">
           {error}
         </p>
       )}

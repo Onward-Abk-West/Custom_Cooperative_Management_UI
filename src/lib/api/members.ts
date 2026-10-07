@@ -2,7 +2,11 @@ import { apiGet, apiPost, apiPut, type ApiEnvelope } from "@/lib/api-client";
 
 /** Matches AbkWestCoop.Contracts.Members.Responses.MemberProfileResponseData.
  * `status` is one of MEMBER_STATUS_VALUES (see api/member-status.ts) —
- * "Active" unless the backend says otherwise. */
+ * "Active" unless the backend says otherwise. `profilePictureUrl` is a
+ * Cloudinary-hosted image URL, null until the member (or whoever is
+ * viewing on their behalf) sets one via api/profile-picture.ts — that
+ * endpoint is self-service only (PUT/DELETE /api/v1/profile/profile-picture,
+ * the authenticated user's own picture), so it's read-only here. */
 export interface MemberProfileData {
   userId: string;
   societyId: string;
@@ -11,6 +15,7 @@ export interface MemberProfileData {
   phoneNumber: string | null;
   roles: string[];
   status: string;
+  profilePictureUrl: string | null;
 }
 
 /** GET /api/v1/members/me — Member role only. */

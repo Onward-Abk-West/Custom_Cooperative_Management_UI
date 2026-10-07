@@ -167,7 +167,7 @@ export default function FirstTimeSignInPage() {
           />
 
           {error && (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm font-semibold text-status-bad">
               {error}
             </p>
           )}
@@ -210,7 +210,7 @@ export default function FirstTimeSignInPage() {
         />
 
         {error && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm font-semibold text-status-bad">
             {error}
           </p>
         )}

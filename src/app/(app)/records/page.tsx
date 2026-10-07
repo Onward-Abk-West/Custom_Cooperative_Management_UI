@@ -55,7 +55,7 @@ export default function RecordsPage() {
 
         {loading && <p className="text-sm text-brand-ink/60">Loading…</p>}
         {error && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm font-semibold text-status-bad">
             {error}
           </p>
         )}
@@ -150,7 +150,7 @@ function ProfileUpdateRequestCard() {
         </Button>
       </form>
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-600">
+        <p role="alert" className="mt-2 text-sm font-semibold text-status-bad">
           {error}
         </p>
       )}
@@ -206,7 +206,7 @@ function PinResetRequestCard() {
         {submitting ? "Requesting…" : "Request PIN reset"}
       </Button>
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-600">
+        <p role="alert" className="mt-2 text-sm font-semibold text-status-bad">
           {error}
         </p>
       )}

@@ -7,17 +7,6 @@ import { Input } from "@/components/ui/Input";
 import { ApiError } from "@/lib/api-client";
 import { getSociety, type SocietySummary } from "@/lib/api/societies";
 import { createMemberAsDeveloperSuperadmin, type CreatedMemberData } from "@/lib/api/members";
-import { listSocietyMembers, type SocietyMemberSummary } from "@/lib/api/society-members";
-import {
-  assignSupervisor,
-  assignPresident,
-  revokeSupervisor,
-  revokePresident,
-  isConfirmationRequired,
-  type AssignmentResult,
-  type SocietyRoleScope,
-} from "@/lib/api/society-assignments";
-import type { ApiEnvelope } from "@/lib/api-client";
 import { readSessionInfo } from "@/lib/session";
 
 /**
@@ -46,18 +35,11 @@ export default function SocietyDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id: societyId } = usePromise(params);
-  const scope: SocietyRoleScope =
-    readSessionInfo()?.role === "developer_superadmin"
-      ? "developer-superadmin"
-      : "onward-superadmin";
-  const canCreateMembers = scope === "developer-superadmin";
+  const canCreateMembers = readSessionInfo()?.role === "developer_superadmin";
 
   const [society, setSociety] = useState<SocietySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-
-  const [roster, setRoster] = useState<SocietyMemberSummary[]>([]);
-  const [rosterLoading, setRosterLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,35 +66,13 @@ export default function SocietyDetailPage({
     };
   }, [societyId]);
 
-  useEffect(() => {
-    let cancelled = false;
-    setRosterLoading(true);
-    listSocietyMembers(societyId, 1, 100)
-      .then((response) => {
-        if (cancelled) return;
-        if (response.success && response.data) {
-          setRoster(response.data.items);
-        }
-      })
-      .catch(() => {
-        // The assignment forms still work with an empty roster — the
-        // dropdown just shows nothing to pick from.
-      })
-      .finally(() => {
-        if (!cancelled) setRosterLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [societyId]);
-
   if (loading) {
     return <div className="text-sm text-brand-ink/60">Loading society…</div>;
   }
 
   if (loadError || !society) {
     return (
-      <p role="alert" className="text-sm text-red-600">
+      <p role="alert" className="text-sm font-semibold text-status-bad">
         {loadError || "Society not found."}
       </p>
     );
@@ -132,23 +92,13 @@ export default function SocietyDetailPage({
 
       {canCreateMembers && <CreateMemberCard societyId={societyId} />}
 
-      <RoleAssignmentCard
-        title="Supervisor"
-        description="One Supervisor per society. Assigning a new Supervisor when one already exists — or when the target member currently holds President — requires confirming the change."
-        roster={roster}
-        rosterLoading={rosterLoading}
-        assign={(userId, confirm) => assignSupervisor(scope, societyId, userId, confirm)}
-        revoke={() => revokeSupervisor(scope, societyId)}
-      />
-
-      <RoleAssignmentCard
-        title="President"
-        description="One President per society, mutually exclusive with Supervisor. Assigning a new President when one already exists requires confirming the change."
-        roster={roster}
-        rosterLoading={rosterLoading}
-        assign={(userId, confirm) => assignPresident(scope, societyId, userId, confirm)}
-        revoke={() => revokePresident(scope, societyId)}
-      />
+      <div className="rounded-2xl border border-dashed border-brand-line bg-surface-card p-5 text-sm text-brand-ink/70">
+        Assign this society&apos;s Supervisor, President and Admin from{" "}
+        <Link href="/assign-roles" className="font-medium text-brand-gold-dark hover:underline">
+          Assign Roles
+        </Link>{" "}
+        in the sidebar.
+      </div>
     </div>
   );
 }
@@ -199,7 +149,7 @@ function CreateMemberCard({ societyId }: { societyId: string }) {
             Temporary credential (share this with the member — it expires{" "}
             {new Date(created.temporaryCredentialExpiresAtUtc).toLocaleString()}):
           </p>
-          <p className="mt-1 select-all break-all rounded-lg bg-white/60 px-3 py-2 font-mono text-xs text-brand-ink">
+          <p className="mt-1 select-all break-all rounded-lg bg-brand-cream px-3 py-2 font-mono text-xs text-brand-ink">
             {created.temporaryCredential}
           </p>
         </div>
@@ -240,152 +190,7 @@ function CreateMemberCard({ societyId }: { societyId: string }) {
         </Button>
       </form>
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-600">
-          {error}
-        </p>
-      )}
-    </section>
-  );
-}
-
-function RoleAssignmentCard({
-  title,
-  description,
-  roster,
-  rosterLoading,
-  assign,
-  revoke,
-}: {
-  title: string;
-  description: string;
-  roster: SocietyMemberSummary[];
-  rosterLoading: boolean;
-  assign: (userId: string, confirm: boolean) => Promise<AssignmentResult>;
-  revoke: () => Promise<ApiEnvelope<unknown>>;
-}) {
-  const [userId, setUserId] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [confirmState, setConfirmState] = useState<{
-    reason: string;
-    userId: string;
-  } | null>(null);
-
-  async function doAssign(targetUserId: string, confirm: boolean) {
-    setError(null);
-    setSubmitting(true);
-    try {
-      const response = await assign(targetUserId, confirm);
-      if (!response.success) {
-        setError(response.message || `${title} could not be assigned.`);
-        return;
-      }
-      if (isConfirmationRequired(response.data)) {
-        setConfirmState({ reason: response.data.reason, userId: targetUserId });
-        return;
-      }
-      setNotice(response.message || `${title} assigned.`);
-      setConfirmState(null);
-      setUserId("");
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message || `${title} could not be assigned.` : "Could not reach the server."
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleAssignSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!userId.trim()) {
-      setError("Select a member.");
-      return;
-    }
-    setNotice(null);
-    await doAssign(userId.trim(), false);
-  }
-
-  async function handleRevoke() {
-    setError(null);
-    setNotice(null);
-    setSubmitting(true);
-    try {
-      const response = await revoke();
-      if (!response.success) {
-        setError(response.message || `${title} could not be revoked.`);
-        return;
-      }
-      setNotice(response.message || `${title} revoked.`);
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message || `${title} could not be revoked.` : "Could not reach the server."
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <section className="rounded-2xl border border-brand-line bg-surface-card p-5">
-      <h2 className="font-heading text-lg font-bold text-brand-ink">{title}</h2>
-      <p className="mt-1 text-sm text-brand-ink/60">{description}</p>
-
-      {confirmState ? (
-        <div className="mt-4 rounded-xl border border-amber-400/50 bg-amber-50 p-4 text-sm text-amber-900">
-          <p className="font-semibold">Confirm this change ({confirmState.reason})</p>
-          <p className="mt-1">
-            This will replace whoever currently holds the {title} role for this society. Confirm to proceed.
-          </p>
-          <div className="mt-3 flex gap-2">
-            <Button
-              type="button"
-              disabled={submitting}
-              onClick={() => doAssign(confirmState.userId, true)}
-            >
-              {submitting ? "Confirming…" : "Confirm replacement"}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => setConfirmState(null)}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <form onSubmit={handleAssignSubmit} noValidate className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="flex-1">
-            <label htmlFor={`${title}-member`} className="mb-1 block text-sm font-medium text-brand-ink">
-              Member
-            </label>
-            <select
-              id={`${title}-member`}
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              disabled={rosterLoading}
-              className="w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:bg-white focus:ring-2 focus:ring-brand-gold/30"
-            >
-              <option value="">
-                {rosterLoading ? "Loading members…" : "Select a member"}
-              </option>
-              {roster.map((member) => (
-                <option key={member.userId} value={member.userId}>
-                  {member.name || member.email || member.phoneNumber || "Member"}
-                </option>
-              ))}
-            </select>
-          </div>
-          <Button type="submit" disabled={submitting || !userId}>
-            {submitting ? "Assigning…" : `Assign ${title}`}
-          </Button>
-          <Button type="button" variant="outline" disabled={submitting} onClick={handleRevoke}>
-            {submitting ? "…" : `Revoke ${title}`}
-          </Button>
-        </form>
-      )}
-
-      {notice && <p className="mt-2 text-sm text-brand-green">{notice}</p>}
-      {error && (
-        <p role="alert" className="mt-2 text-sm text-red-600">
+        <p role="alert" className="mt-2 text-sm font-semibold text-status-bad">
           {error}
         </p>
       )}
