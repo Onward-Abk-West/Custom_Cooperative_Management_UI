@@ -17,7 +17,10 @@
  *   - PIN-reset approval is a Supervisor/President/superadmin
  *     responsibility (any one of them, not a joint approval) — not
  *     Admin. A Member requests one from My Records while signed in;
- *     see src/lib/api/pin-reset.ts and src/app/forgot-pin/page.tsx.
+ *     see src/lib/api/pin-reset.ts. Redemption now happens through the
+ *     unified src/app/login/page.tsx (which calls
+ *     src/lib/api/account-identify.ts first) rather than a dedicated
+ *     /forgot-pin page — that route still exists but just redirects here.
  *   - Profile-change review is an Admin responsibility — a Member has
  *     no self-service profile edit, only a request an Admin approves
  *     or rejects. See src/lib/api/profile-update-requests.ts.
@@ -106,6 +109,16 @@ export const NAV_ITEMS: NavItem[] = [
   // exist — just reached from the switcher instead of a nav item; the
   // old list-all-societies table (/societies) isn't linked from
   // anywhere in the UI anymore.
+  {
+    label: "DGT Import",
+    href: "/dgt-import",
+    // DeveloperSuperadminDgtImportsController's [Authorize(Roles =
+    // "Developer Superadmin")] is exact — not Onward Superadmin too,
+    // unlike most other developer_superadmin/onward_superadmin pairs in
+    // this list. One-time-per-society legacy-data migration tool: see
+    // (app)/dgt-import/page.tsx.
+    roles: ["developer_superadmin"],
+  },
   {
     label: "Audit Log",
     href: "/audit-log",

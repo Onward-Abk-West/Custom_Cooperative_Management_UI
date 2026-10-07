@@ -336,7 +336,8 @@ function DeveloperCreateMemberCard({ societyId }: { societyId: string }) {
       <p className="mt-1 text-sm text-brand-ink/60">
         Creates into whichever society the sidebar switcher currently points at. Issues a
         temporary credential the new member exchanges for their own PIN at{" "}
-        <span className="font-medium">/first-time-signin</span>.
+        <span className="font-medium">/login</span> — they just enter their email or phone
+        number there and the temporary-credential prompt comes up automatically.
       </p>
 
       {created && (

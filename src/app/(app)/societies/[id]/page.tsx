@@ -139,7 +139,8 @@ function CreateMemberCard({ societyId }: { societyId: string }) {
       <h2 className="font-heading text-lg font-bold text-brand-ink">Create member</h2>
       <p className="mt-1 text-sm text-brand-ink/60">
         Issues a temporary credential the new member exchanges for their own PIN at{" "}
-        <span className="font-medium">/first-time-signin</span>.
+        <span className="font-medium">/login</span> — they just enter their email or phone
+        number there and the temporary-credential prompt comes up automatically.
       </p>
 
       {created && (

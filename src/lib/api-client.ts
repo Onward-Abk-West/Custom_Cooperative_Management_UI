@@ -151,7 +151,17 @@ export async function apiFetch<T = unknown>(
     if (accessToken) {
       finalHeaders.set("Authorization", `Bearer ${accessToken}`);
     }
-    if (rest.body && !finalHeaders.has("Content-Type")) {
+    if (
+      rest.body &&
+      !finalHeaders.has("Content-Type") &&
+      !(rest.body instanceof FormData)
+    ) {
+      // A FormData body (the DGT import upload — see
+      // api/dgt-import.ts) must NOT get this header: the browser sets
+      // its own "multipart/form-data; boundary=..." when the fetch
+      // body is a FormData instance, and overriding it here (even to
+      // the same string, since we can't supply the boundary) breaks
+      // server-side multipart parsing entirely.
       finalHeaders.set("Content-Type", "application/json");
     }
     return fetch(`${API_BASE_URL}${path}`, {

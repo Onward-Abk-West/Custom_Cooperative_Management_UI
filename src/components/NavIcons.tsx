@@ -94,6 +94,15 @@ function AssignRolesIcon(props: IconProps) {
   );
 }
 
+function DgtImportIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3.5v11M8 10.5l4 4 4-4" />
+      <path d="M5 16v2.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V16" />
+    </Icon>
+  );
+}
+
 function AuditIcon(props: IconProps) {
   return (
     <Icon {...props}>
@@ -120,6 +129,7 @@ export const NAV_ICONS: Record<string, (props: IconProps) => React.JSX.Element> 
   "/pin-resets": PinResetIcon,
   "/societies": SocietiesIcon,
   "/assign-roles": AssignRolesIcon,
+  "/dgt-import": DgtImportIcon,
   "/audit-log": AuditIcon,
 };
 
