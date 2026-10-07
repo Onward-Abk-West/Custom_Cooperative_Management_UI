@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { ApiError } from "@/lib/api-client";
+import { PIN_RESETS_CHANGED_EVENT } from "@/lib/use-pending-pin-resets";
 import {
   listPendingPinResets,
   approvePinReset,
@@ -98,6 +99,8 @@ export default function PinResetsPage() {
       ]);
       setItems((current) => current.filter((item) => item.id !== request.id));
       setTotalCount((count) => Math.max(0, count - 1));
+      // Tell the sidebar badge / dashboard tile to re-count right away.
+      window.dispatchEvent(new Event(PIN_RESETS_CHANGED_EVENT));
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message || "This request could not be approved." : "Could not reach the server."
@@ -110,7 +113,7 @@ export default function PinResetsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-ink">PIN Reset Requests</h1>
+        <h1 className="font-heading text-2xl font-bold text-heading">PIN Reset Requests</h1>
         <p className="mt-1 text-sm text-brand-ink/60">
           {totalCount > 0
             ? `${totalCount} pending request${totalCount === 1 ? "" : "s"}.`

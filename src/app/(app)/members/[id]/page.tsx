@@ -153,7 +153,7 @@ export default function MemberDetailPage({
               {(profile.name || profile.email || "?").charAt(0).toUpperCase()}
             </div>
           )}
-          <h1 className="font-heading text-2xl font-bold text-brand-ink">
+          <h1 className="font-heading text-2xl font-bold text-heading">
             {profile.name || profile.email || profile.phoneNumber || "Member"}
           </h1>
         </div>
@@ -267,11 +267,11 @@ function MemberStatusCard({
 
   return (
     <section className="rounded-2xl border border-brand-line bg-surface-card p-5">
-      <h2 className="font-heading text-lg font-bold text-brand-ink">Status</h2>
+      <h2 className="font-heading text-lg font-bold text-heading">Status</h2>
       <p className="mt-1 text-sm text-brand-ink/60">Currently: {currentStatus}.</p>
       <form onSubmit={handleSubmit} noValidate className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex-1">
-          <label htmlFor="member-status" className="mb-1 block text-sm font-medium text-brand-ink">
+          <label htmlFor="member-status" className="mb-1 block text-sm font-semibold text-heading">
             New status
           </label>
           <select
@@ -337,7 +337,7 @@ function ReissueCredentialCard({
 
   return (
     <section className="rounded-2xl border border-brand-line bg-surface-card p-5">
-      <h2 className="font-heading text-lg font-bold text-brand-ink">Temporary credential</h2>
+      <h2 className="font-heading text-lg font-bold text-heading">Temporary credential</h2>
       <p className="mt-1 text-sm text-brand-ink/60">
         Re-issue a first-time-PIN-setup credential if the member never completed onboarding and
         the original was lost or expired. Rejected once the member has already set their own PIN.

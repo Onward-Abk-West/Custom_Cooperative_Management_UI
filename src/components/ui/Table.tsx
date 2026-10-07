@@ -28,7 +28,10 @@ export function Table({
 }
 
 export function TableHead(props: HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className="bg-brand-line/25" {...props} />;
+  return <thead
+      className="border-b-2 border-table-head-rule bg-table-head"
+      {...props}
+    />;
 }
 
 export function TableBody(props: HTMLAttributes<HTMLTableSectionElement>) {
@@ -48,7 +51,7 @@ export function TableHeaderCell({
 }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
-      className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-brand-ink/60 ${className}`}
+      className={`px-4 py-3 text-xs font-bold uppercase tracking-wide text-table-head-ink ${className}`}
       {...props}
     />
   );

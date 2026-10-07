@@ -84,7 +84,7 @@ export default function SocietyDetailPage({
         <Link href="/societies" className="text-sm font-medium text-brand-gold-dark hover:underline">
           ← All societies
         </Link>
-        <h1 className="font-heading mt-2 text-2xl font-bold text-brand-ink">
+        <h1 className="font-heading mt-2 text-2xl font-bold text-heading">
           {society.name}
         </h1>
         <p className="mt-1 font-mono text-xs text-brand-ink/50">{society.id}</p>
@@ -136,7 +136,7 @@ function CreateMemberCard({ societyId }: { societyId: string }) {
 
   return (
     <section className="rounded-2xl border border-brand-line bg-surface-card p-5">
-      <h2 className="font-heading text-lg font-bold text-brand-ink">Create member</h2>
+      <h2 className="font-heading text-lg font-bold text-heading">Create member</h2>
       <p className="mt-1 text-sm text-brand-ink/60">
         Issues a temporary credential the new member exchanges for their own PIN at{" "}
         <span className="font-medium">/login</span> — they just enter their email or phone

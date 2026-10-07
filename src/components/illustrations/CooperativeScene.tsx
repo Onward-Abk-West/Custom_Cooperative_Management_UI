@@ -14,9 +14,9 @@
  * Colors here are hand-picked hex literals, not CSS custom properties
  * — unlike every other component in the app, this one does NOT pick
  * up globals.css token changes automatically, so it was recolored by
- * hand for the brand v2 ("Indigo & Gold") identity: the sky now runs
- * pale gold to deep indigo instead of cream to mustard-gold, and the
- * joined-hands dots alternate the two brand hues (indigo/gold)
+ * hand for the brand v2 ("Green & Gold") identity: the sky now runs
+ * pale cream to deep green, green hills instead of cream to mustard-gold, and the
+ * joined-hands dots alternate the two brand hues (green/gold)
  * directly instead of green/brown. Gold stays the original hex here
  * (not the brighter "marigold" tried briefly — reverted per request).
  */
@@ -31,17 +31,17 @@ export function CooperativeScene({ className }: { className?: string }) {
     >
       <defs>
         <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#FBE9C6" />
-          <stop offset="48%" stopColor="#E9B85A" />
-          <stop offset="100%" stopColor="#5B3FC4" />
+          <stop offset="0%" stopColor="#F6F0D2" />
+          <stop offset="48%" stopColor="#A9D8A8" />
+          <stop offset="100%" stopColor="#5FB07A" />
         </linearGradient>
         <linearGradient id="hill-far" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#7A68C9" />
-          <stop offset="100%" stopColor="#5B46C4" />
+          <stop offset="0%" stopColor="#3E9A5F" />
+          <stop offset="100%" stopColor="#2B7F4C" />
         </linearGradient>
         <linearGradient id="hill-near" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#3C2A8E" />
-          <stop offset="100%" stopColor="#2A1D66" />
+          <stop offset="0%" stopColor="#1E6B43" />
+          <stop offset="100%" stopColor="#124A2E" />
         </linearGradient>
       </defs>
 
@@ -70,7 +70,7 @@ export function CooperativeScene({ className }: { className?: string }) {
       </g>
 
       {/* circle of joined hands — the cooperative. Dots alternate the
-          two brand hues directly (indigo / gold) rather than
+          two brand hues directly (green / gold) rather than
           green/brown, so the hands read as "this cooperative's two
           colors joined" rather than an incidental skin-tone palette. */}
       <g transform="translate(320 400)">
@@ -80,7 +80,7 @@ export function CooperativeScene({ className }: { className?: string }) {
           const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
           const x = Math.cos(angle) * 34;
           const y = Math.sin(angle) * 34;
-          const hue = i % 2 === 0 ? "#5B3FC4" : "#D98C1F";
+          const hue = i % 2 === 0 ? "#1F7A4D" : "#D98C1F";
           return (
             <g key={i} transform={`translate(${x} ${y})`}>
               <circle r="10" fill={hue} />

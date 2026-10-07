@@ -34,7 +34,7 @@ export function AuthCard({
       <ThemeToggle className="absolute right-5 top-5 z-10" />
 
       <div className="relative flex w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] bg-brand-cream shadow-2xl ring-1 ring-brand-line md:flex-row">
-        <div className="relative flex w-full flex-col justify-between gap-10 rounded-b-[3rem] bg-gradient-to-br from-brand-green via-brand-green-dark to-brand-gold-dark p-8 text-brand-cream md:w-[42%] md:rounded-b-none md:rounded-tr-[55%_100%] md:rounded-br-[55%_100%] md:p-10">
+        <div className="relative flex w-full flex-col justify-between gap-10 rounded-b-[3rem] bg-gradient-to-br from-brand-green via-brand-green-dark to-brand-green-deep p-8 text-brand-cream md:w-[42%] md:rounded-b-none md:rounded-tr-[55%_100%] md:rounded-br-[55%_100%] md:p-10">
           <div>
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-md">
               <CooperativeMark className="h-9 w-9" />

@@ -64,7 +64,7 @@ export default function MembersPage() {
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-brand-ink">Members</h1>
+          <h1 className="font-heading text-2xl font-bold text-heading">Members</h1>
           <p className="mt-1 text-sm text-brand-ink/60">
             Everyone in this society — Members, Admins, Supervisor and President alike.
           </p>
@@ -330,7 +330,7 @@ function DeveloperCreateMemberCard({ societyId }: { societyId: string }) {
 
   return (
     <section className="max-w-lg rounded-2xl border border-brand-line bg-surface-card p-5">
-      <h2 className="font-heading text-lg font-bold text-brand-ink">
+      <h2 className="font-heading text-lg font-bold text-heading">
         Create member in the selected society
       </h2>
       <p className="mt-1 text-sm text-brand-ink/60">
@@ -411,7 +411,7 @@ function SupervisorCreateMemberCard() {
 
   return (
     <section className="max-w-lg rounded-2xl border border-brand-line bg-surface-card p-5">
-      <h2 className="font-heading text-lg font-bold text-brand-ink">Create member in your society</h2>
+      <h2 className="font-heading text-lg font-bold text-heading">Create member in your society</h2>
       {created && (
         <div className="mt-4 rounded-xl border border-brand-gold/40 bg-brand-gold/10 p-4 text-sm">
           <p className="font-semibold text-brand-ink">

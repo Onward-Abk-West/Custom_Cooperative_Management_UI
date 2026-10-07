@@ -75,7 +75,7 @@ export default function NewSocietyPage() {
         <Link href="/societies" className="text-sm font-medium text-brand-gold-dark hover:underline">
           ← All societies
         </Link>
-        <h1 className="font-heading mt-2 text-2xl font-bold text-brand-ink">New society</h1>
+        <h1 className="font-heading mt-2 text-2xl font-bold text-heading">New society</h1>
       </div>
 
       {umbrellaError ? (

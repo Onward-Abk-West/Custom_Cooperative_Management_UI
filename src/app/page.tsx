@@ -17,7 +17,7 @@ const SPLASH_DURATION_MS = 1800;
  * /dashboard before this component ever renders.
  *
  * Visual language matches the login screen's colored panel — a green
- * -> gold gradient field with a badge mark and soft blob accents,
+ * -> green gradient field with a badge mark and soft blob accents,
  * rather than the earlier landscape illustration.
  */
 export default function SplashPage() {
@@ -33,7 +33,7 @@ export default function SplashPage() {
   return (
     <main
       onClick={() => router.replace("/login")}
-      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-brand-green via-brand-green-dark to-brand-gold-dark"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-brand-green via-brand-green-dark to-brand-green-deep"
     >
       {/* soft blob accents — the same depth cue as the login panel,
           without a literal illustration behind it */}
