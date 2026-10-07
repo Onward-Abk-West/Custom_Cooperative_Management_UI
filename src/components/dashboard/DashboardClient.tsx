@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { StatCard } from "./StatCard";
 import { LineChart } from "./LineChart";
 import { BarChart } from "./BarChart";
@@ -27,6 +28,105 @@ import {
   formatNaira,
   type TransactionType,
 } from "@/lib/dashboard-data";
+import { listPendingPinResets } from "@/lib/api/pin-reset";
+import { readSessionInfo } from "@/lib/session";
+import { useSociety } from "@/lib/society-context";
+import { isSuperadmin, type Role } from "@/lib/roles";
+
+/** The largest page worth scanning to count pending requests client-side
+ * for a superadmin — see PendingPinResetsCard below. Matches the
+ * MAX_PAGE_SIZE ceiling used the same way in (app)/members/page.tsx. */
+const PIN_RESET_SCAN_SIZE = 100;
+
+/**
+ * A small, dismiss-free alert tile: how many PIN reset requests are
+ * waiting for the signed-in officer to approve. Only rendered for the
+ * four roles that can actually act on the queue (matches PIN Reset
+ * Requests' NAV_ITEMS roles in src/lib/roles.ts).
+ *
+ * "Based on association" per the PRD: a Supervisor/President's count is
+ * already scoped to their own society by the backend (same
+ * GET /api/v1/pin-reset-requests a Supervisor/President ever sees), so
+ * their total page count is used as-is. A Developer/Onward Superadmin
+ * has no per-society filter on that endpoint yet, so this scans a page
+ * of pending requests and counts only the ones matching whichever
+ * society the sidebar switcher currently points at — never a
+ * cross-society total — and re-counts whenever that selection changes.
+ */
+function PendingPinResetsCard({ role, societyId }: { role: Role; societyId: string }) {
+  const [count, setCount] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setError(null);
+
+    if (isSuperadmin(role)) {
+      if (!societyId) {
+        setCount(null);
+        return;
+      }
+      listPendingPinResets(1, PIN_RESET_SCAN_SIZE)
+        .then((response) => {
+          if (cancelled) return;
+          if (!response.success || !response.data) {
+            setError(response.message || "Pending PIN reset count could not be loaded.");
+            return;
+          }
+          setCount(response.data.items.filter((item) => item.societyId === societyId).length);
+        })
+        .catch(() => {
+          if (!cancelled) setError("Pending PIN reset count could not be loaded.");
+        });
+    } else {
+      listPendingPinResets(1, 1)
+        .then((response) => {
+          if (cancelled) return;
+          if (!response.success || !response.data) {
+            setError(response.message || "Pending PIN reset count could not be loaded.");
+            return;
+          }
+          setCount(response.data.totalCount);
+        })
+        .catch(() => {
+          if (!cancelled) setError("Pending PIN reset count could not be loaded.");
+        });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [role, societyId]);
+
+  if (count === null && !error) {
+    return null;
+  }
+
+  return (
+    <Link
+      href="/pin-resets"
+      className="flex items-center justify-between gap-3 rounded-2xl border border-brand-line bg-surface-card p-4 transition hover:border-brand-gold"
+    >
+      <div>
+        <p className="text-sm font-semibold text-brand-ink">Pending PIN reset requests</p>
+        <p className="mt-0.5 text-xs text-brand-ink/60">
+          {isSuperadmin(role) ? "For the society selected in the sidebar switcher." : "For your society."}
+        </p>
+      </div>
+      {error ? (
+        <span className="text-xs font-semibold text-status-bad">{error}</span>
+      ) : (
+        <span
+          className={`inline-flex min-w-9 items-center justify-center rounded-full px-3 py-1.5 text-sm font-bold ${
+            count && count > 0 ? "bg-status-bad text-white" : "bg-brand-line/30 text-brand-ink/60"
+          }`}
+        >
+          {count}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 const RANGE_INDICES: Record<DateRangeKey, number[]> = {
   "6m": [0, 1, 2, 3, 4, 5],
@@ -73,6 +173,22 @@ export function DashboardClient() {
     range: "6m",
     type: "all",
   });
+
+  const [role, setRole] = useState<Role | null>(null);
+  const [ownSocietyId, setOwnSocietyId] = useState("");
+  const { societyId: switchedSocietyId } = useSociety();
+
+  useEffect(() => {
+    const info = readSessionInfo();
+    setRole(info?.role ?? null);
+    setOwnSocietyId(info?.societyId ?? "");
+  }, []);
+
+  const canHandlePinResets =
+    role === "supervisor" ||
+    role === "president" ||
+    role === "developer_superadmin" ||
+    role === "onward_superadmin";
 
   const rangeIdx = RANGE_INDICES[filters.range];
   const lastIdx = MONTHS.length - 1;
@@ -180,6 +296,13 @@ export function DashboardClient() {
           reviewed against real interaction, not just a static mock.
         </p>
       </div>
+
+      {canHandlePinResets && role && (
+        <PendingPinResetsCard
+          role={role}
+          societyId={isSuperadmin(role) ? switchedSocietyId : ownSocietyId}
+        />
+      )}
 
       <FiltersBar
         filters={filters}

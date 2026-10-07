@@ -189,11 +189,12 @@ function PinResetRequestCard() {
       <h2 className="font-heading text-lg font-bold text-brand-ink">Request a PIN reset</h2>
       <p className="mt-1 text-sm text-brand-ink/60">
         Your society&apos;s Supervisor, President, or a superadmin approves
-        the request, then hands you a one-time reset credential to use at{" "}
-        <a href="/forgot-pin" className="font-medium text-brand-gold-dark hover:underline">
-          /forgot-pin
-        </a>
-        .
+        the request, then hands you a one-time reset code to use at{" "}
+        <a href="/login" className="font-medium text-brand-gold-dark hover:underline">
+          /login
+        </a>{" "}
+        — enter your email or phone number there and the reset-code prompt comes up
+        automatically.
       </p>
 
       {result && (

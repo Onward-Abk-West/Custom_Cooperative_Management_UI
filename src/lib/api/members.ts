@@ -45,8 +45,10 @@ export function updateMemberProfile(
 
 /** Matches AbkWestCoop.Contracts.Members.Responses.CreateMemberResponseData.
  * `nextAction` is always "FirstTimeAuthenticate" today — the value the
- * member's temporary credential should be handed to at
- * /first-time-signin (see api/first-time-auth.ts). */
+ * member's temporary credential should be handed to. The member redeems
+ * it at /login (which calls api/account-identify.ts first, then falls
+ * through to api/first-time-auth.ts) rather than a dedicated
+ * /first-time-signin page. */
 export interface CreatedMemberData {
   userId: string;
   societyId: string;
