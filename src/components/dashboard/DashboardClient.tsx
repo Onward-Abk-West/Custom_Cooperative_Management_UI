@@ -28,75 +28,21 @@ import {
   formatNaira,
   type TransactionType,
 } from "@/lib/dashboard-data";
-import { listPendingPinResets } from "@/lib/api/pin-reset";
+import { usePendingPinResetCount } from "@/lib/use-pending-pin-resets";
 import { readSessionInfo } from "@/lib/session";
 import { useSociety } from "@/lib/society-context";
 import { isSuperadmin, type Role } from "@/lib/roles";
-
-/** The largest page worth scanning to count pending requests client-side
- * for a superadmin — see PendingPinResetsCard below. Matches the
- * MAX_PAGE_SIZE ceiling used the same way in (app)/members/page.tsx. */
-const PIN_RESET_SCAN_SIZE = 100;
 
 /**
  * A small, dismiss-free alert tile: how many PIN reset requests are
  * waiting for the signed-in officer to approve. Only rendered for the
  * four roles that can actually act on the queue (matches PIN Reset
- * Requests' NAV_ITEMS roles in src/lib/roles.ts).
- *
- * "Based on association" per the PRD: a Supervisor/President's count is
- * already scoped to their own society by the backend (same
- * GET /api/v1/pin-reset-requests a Supervisor/President ever sees), so
- * their total page count is used as-is. A Developer/Onward Superadmin
- * has no per-society filter on that endpoint yet, so this scans a page
- * of pending requests and counts only the ones matching whichever
- * society the sidebar switcher currently points at — never a
- * cross-society total — and re-counts whenever that selection changes.
+ * Requests' NAV_ITEMS roles in src/lib/roles.ts). The count itself comes
+ * from usePendingPinResetCount — the same hook that drives the badge on
+ * the sidebar's "PIN Reset Requests" item — so both always agree.
  */
 function PendingPinResetsCard({ role, societyId }: { role: Role; societyId: string }) {
-  const [count, setCount] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setError(null);
-
-    if (isSuperadmin(role)) {
-      if (!societyId) {
-        setCount(null);
-        return;
-      }
-      listPendingPinResets(1, PIN_RESET_SCAN_SIZE)
-        .then((response) => {
-          if (cancelled) return;
-          if (!response.success || !response.data) {
-            setError(response.message || "Pending PIN reset count could not be loaded.");
-            return;
-          }
-          setCount(response.data.items.filter((item) => item.societyId === societyId).length);
-        })
-        .catch(() => {
-          if (!cancelled) setError("Pending PIN reset count could not be loaded.");
-        });
-    } else {
-      listPendingPinResets(1, 1)
-        .then((response) => {
-          if (cancelled) return;
-          if (!response.success || !response.data) {
-            setError(response.message || "Pending PIN reset count could not be loaded.");
-            return;
-          }
-          setCount(response.data.totalCount);
-        })
-        .catch(() => {
-          if (!cancelled) setError("Pending PIN reset count could not be loaded.");
-        });
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [role, societyId]);
+  const { count, error } = usePendingPinResetCount(role, societyId, true);
 
   if (count === null && !error) {
     return null;
@@ -108,7 +54,7 @@ function PendingPinResetsCard({ role, societyId }: { role: Role; societyId: stri
       className="flex items-center justify-between gap-3 rounded-2xl border border-brand-line bg-surface-card p-4 transition hover:border-brand-gold"
     >
       <div>
-        <p className="text-sm font-semibold text-brand-ink">Pending PIN reset requests</p>
+        <p className="text-sm font-bold text-heading">Pending PIN reset requests</p>
         <p className="mt-0.5 text-xs text-brand-ink/60">
           {isSuperadmin(role) ? "For the society selected in the sidebar switcher." : "For your society."}
         </p>
@@ -286,7 +232,7 @@ export function DashboardClient() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="font-heading text-xl font-bold text-brand-ink">
+        <h1 className="font-heading text-xl font-bold text-heading">
           Dashboard
         </h1>
         <p className="mt-1 text-sm text-brand-ink/60">
@@ -419,7 +365,7 @@ export function DashboardClient() {
       </ChartCard>
 
       <div>
-        <h2 className="font-heading text-sm font-bold text-brand-ink">
+        <h2 className="font-heading text-base font-bold text-heading">
           Recent activity
         </h2>
         <p className="mt-1 text-xs text-brand-ink/55">

@@ -89,7 +89,7 @@ export function StatCard({
     <div className="flex flex-col gap-3 rounded-2xl border border-brand-line bg-surface-card p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-brand-ink/60">
+          <p className="text-xs font-bold uppercase tracking-wide text-heading">
             {label}
           </p>
           <p className="mt-1.5 truncate text-2xl font-semibold text-brand-ink">

@@ -99,7 +99,7 @@ export default function ProfileRequestsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-ink">Profile Update Requests</h1>
+        <h1 className="font-heading text-2xl font-bold text-heading">Profile Update Requests</h1>
         <p className="mt-1 text-sm text-brand-ink/60">
           {totalCount > 0
             ? `${totalCount} pending request${totalCount === 1 ? "" : "s"}.`

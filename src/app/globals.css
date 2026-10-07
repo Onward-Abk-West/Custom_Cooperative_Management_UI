@@ -10,24 +10,25 @@
   color-scheme: light;
 
   --background: #f7f2e8;
-  --foreground: #211b3d;
+  --foreground: #14241b;
 
-  /* Cooperative brand palette v2 — "Indigo & Gold".
+  /* Cooperative brand palette v3 — "Green & Gold" (was "Indigo & Gold": every purple/indigo token below is now green).
      Replaces the earlier green/gold/cream system (too close in hue —
      both warm and earthy — to read as distinctive; see design notes).
-     Indigo (violet-blue) and gold sit near-opposite on the wheel, so
+     Green and gold on the wheel, so
      the pairing carries real visual tension instead of a single warm
      family: indigo signals the institution/ledger side, gold keeps
      the original harvest/savings color exactly as it was — reverted
      to the original hex per request, after a brief "marigold" (more
      saturated amber) detour didn't land. Cream stays as the paper
      surface — still a cooperative ledger, just a bolder ink on it. */
-  --brand-green: #5b3fc4;
-  --brand-green-dark: #3c2a8e;
+  --brand-green: #176b42;
+  --brand-green-dark: #0f4f31;
+  --brand-green-deep: #0a3622;
   --brand-gold: #d98c1f;
   --brand-gold-dark: #b9791c;
   --brand-cream: #f7f2e8;
-  --brand-ink: #211b3d;
+  --brand-ink: #14241b;
   --brand-line: #e3ded1;
 
   /* Opaque card/header surfaces — dashboard stat cards, chart cards,
@@ -49,7 +50,7 @@
   --glass-surface-strong: rgba(255, 255, 255, 0.62);
   --glass-border: rgba(255, 255, 255, 0.55);
   --glass-highlight: rgba(255, 255, 255, 0.85);
-  --glass-shadow: rgba(33, 27, 61, 0.28);
+  --glass-shadow: rgba(12, 44, 28, 0.28);
   --glass-input: rgba(255, 255, 255, 0.38);
   --glass-input-border: rgba(255, 255, 255, 0.5);
 
@@ -72,11 +73,11 @@
      (teal) still manages a single hex across both themes. Never used
      for status (good/bad) — that's --status-good / --status-bad, a
      separate reserved scale. */
-  --chart-1: #5b3fc4; /* indigo — savings / primary series */
+  --chart-1: #176b42; /* green — savings / primary series */
   --chart-2: #d9971f; /* gold — loans / secondary series */
   --chart-3: #c23b6b; /* raspberry — disbursements */
-  --chart-4: #15a090; /* teal */
-  --chart-5: #3f7d3f; /* forest green */
+  --chart-4: #2f6fb0; /* teal */
+  --chart-5: #8a6a4a; /* forest green */
 
   /* Status is a small fixed scale, reserved meaning, never reused as
      a categorical slot — always paired with an icon + label, never
@@ -85,6 +86,15 @@
      is a UX convention independent of the palette swap above. */
   --status-good: #1f7a34;
   --status-bad: #c8352a;
+
+  /* Heading ink — the colour of every card title, stat label, table
+     column header, and section heading. Deliberately NOT --brand-ink:
+     the body-text ink, so titles stand apart from the data under them.
+     Mid-green in light mode; gold on black in dark mode. */
+  --heading-ink: #0a7a42;
+  --table-head-bg: #0f4f31;
+  --table-head-rule: #0a3622;
+  --table-head-ink: #ffffff;
 }
 
 @theme inline {
@@ -92,6 +102,7 @@
   --color-foreground: var(--foreground);
   --color-brand-green: var(--brand-green);
   --color-brand-green-dark: var(--brand-green-dark);
+  --color-brand-green-deep: var(--brand-green-deep);
   --color-brand-gold: var(--brand-gold);
   --color-brand-gold-dark: var(--brand-gold-dark);
   --color-brand-cream: var(--brand-cream);
@@ -108,6 +119,10 @@
   --color-chart-5: var(--chart-5);
   --color-status-good: var(--status-good);
   --color-status-bad: var(--status-bad);
+  --color-heading: var(--heading-ink);
+  --color-table-head: var(--table-head-bg);
+  --color-table-head-rule: var(--table-head-rule);
+  --color-table-head-ink: var(--table-head-ink);
   --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-heading);
@@ -128,18 +143,19 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --background: #171229;
-    --foreground: #f1ecfa;
-    --brand-green: #9385e8;
-    --brand-green-dark: #6c5bc9;
-    --brand-gold: #eab04a;
-    --brand-gold-dark: #ce9333;
-    --brand-cream: #211a3d;
-    --brand-ink: #f1ecfa;
-    --brand-line: #3c3463;
+    --background: #000000;
+    --foreground: #f2f7f3;
+    --brand-green: #4ade80;
+    --brand-green-dark: #34c06e;
+    --brand-green-deep: #1d9a55;
+    --brand-gold: #ffc247;
+    --brand-gold-dark: #e0a02f;
+    --brand-cream: #0b0f0d;
+    --brand-ink: #f2f7f3;
+    --brand-line: #2c352f;
 
-    --glass-surface: rgba(23, 18, 41, 0.42);
-    --glass-surface-strong: rgba(23, 18, 41, 0.6);
+    --glass-surface: rgba(0, 0, 0, 0.5);
+    --glass-surface-strong: rgba(0, 0, 0, 0.68);
     --glass-border: rgba(255, 255, 255, 0.14);
     --glass-highlight: rgba(255, 255, 255, 0.2);
     --glass-shadow: rgba(0, 0, 0, 0.55);
@@ -147,58 +163,71 @@
     --glass-input-border: rgba(255, 255, 255, 0.18);
 
     /* Dark-mode chart palette — re-stepped against this surface
-       (#171229). Slot 1 (indigo) is re-stepped here too, matching
+       (#000000). Slot 1 (green) is re-stepped here too, matching
        --brand-green's own dark value — see the design note above
        the light-mode chart block for why. */
-    --chart-1: #9385e8;
+    --chart-1: #4ade80;
     --chart-2: #ad881c;
     --chart-3: #e0577f;
-    --chart-4: #2bc1af;
-    --chart-5: #5fa85f;
+    --chart-4: #5aa0e8;
+    --chart-5: #c4a074;
 
     --status-good: #4caf5c;
     --status-bad: #e6685c;
+
+    /* True-black theme: neutral near-black surfaces (no purple cast),
+       gold headings (13:1 on black), green accents. */
+    --heading-ink: #ffc247;
+    --table-head-bg: color-mix(in srgb, #ffc247 20%, #101512);
+    --table-head-rule: #ffc247;
+    --table-head-ink: #ffd479;
 
     /* Solid, visibly-lighter-than-background elevation — not an
        alpha overlay, since a thin white wash over near-black just
        reads as "slightly less black," not as a distinct raised
        surface. */
-    --surface-card: #2a2250;
-    --surface-header: #302759;
+    --surface-card: #101512;
+    --surface-header: #161c18;
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --background: #171229;
-  --foreground: #f1ecfa;
-  --brand-green: #9385e8;
-  --brand-green-dark: #6c5bc9;
-  --brand-gold: #eab04a;
-  --brand-gold-dark: #ce9333;
-  --brand-cream: #211a3d;
-  --brand-ink: #f1ecfa;
-  --brand-line: #3c3463;
+  --background: #000000;
+  --foreground: #f2f7f3;
+  --brand-green: #4ade80;
+  --brand-green-dark: #34c06e;
+  --brand-green-deep: #1d9a55;
+  --brand-gold: #ffc247;
+  --brand-gold-dark: #e0a02f;
+  --brand-cream: #0b0f0d;
+  --brand-ink: #f2f7f3;
+  --brand-line: #2c352f;
 
-  --glass-surface: rgba(23, 18, 41, 0.42);
-  --glass-surface-strong: rgba(23, 18, 41, 0.6);
+  --glass-surface: rgba(0, 0, 0, 0.5);
+  --glass-surface-strong: rgba(0, 0, 0, 0.68);
   --glass-border: rgba(255, 255, 255, 0.14);
   --glass-highlight: rgba(255, 255, 255, 0.2);
   --glass-shadow: rgba(0, 0, 0, 0.55);
   --glass-input: rgba(255, 255, 255, 0.08);
   --glass-input-border: rgba(255, 255, 255, 0.18);
 
-  --chart-1: #9385e8;
+  --chart-1: #4ade80;
   --chart-2: #ad881c;
   --chart-3: #e0577f;
-  --chart-4: #2bc1af;
-  --chart-5: #5fa85f;
+  --chart-4: #5aa0e8;
+  --chart-5: #c4a074;
 
   --status-good: #4caf5c;
   --status-bad: #e6685c;
 
-  --surface-card: #2a2250;
-  --surface-header: #302759;
+  --heading-ink: #ffc247;
+  --table-head-bg: color-mix(in srgb, #ffc247 20%, #101512);
+  --table-head-rule: #ffc247;
+  --table-head-ink: #ffd479;
+
+  --surface-card: #101512;
+  --surface-header: #161c18;
 }
 
 body {

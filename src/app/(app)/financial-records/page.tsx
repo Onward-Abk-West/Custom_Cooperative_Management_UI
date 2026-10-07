@@ -49,7 +49,7 @@ export default function FinancialRecordsPage() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-ink">Financial Records</h1>
+        <h1 className="font-heading text-2xl font-bold text-heading">Financial Records</h1>
         <p className="mt-1 text-sm text-brand-ink/60">
           Record a share, savings, loan or other transaction against a member&apos;s account.
         </p>
@@ -204,7 +204,7 @@ function TransactionForm({
 
   return (
     <section className="max-w-lg rounded-2xl border border-brand-line bg-surface-card p-5">
-      <h2 className="font-heading text-lg font-bold text-brand-ink">Record a transaction</h2>
+      <h2 className="font-heading text-lg font-bold text-heading">Record a transaction</h2>
 
       {created && (
         <RecordedTransactionCard key={created.id} transaction={created} onUpdate={update} />
@@ -212,7 +212,7 @@ function TransactionForm({
 
       <form onSubmit={handleSubmit} noValidate className="mt-4 flex flex-col gap-3">
         <div>
-          <label htmlFor="transaction-member" className="mb-1 block text-sm font-medium text-brand-ink">
+          <label htmlFor="transaction-member" className="mb-1 block text-sm font-semibold text-heading">
             Member
           </label>
           <select
@@ -232,7 +232,7 @@ function TransactionForm({
         </div>
 
         <div>
-          <label htmlFor="transaction-category" className="mb-1 block text-sm font-medium text-brand-ink">
+          <label htmlFor="transaction-category" className="mb-1 block text-sm font-semibold text-heading">
             Category
           </label>
           <select
@@ -377,7 +377,7 @@ function RecordedTransactionCard({
           <div>
             <label
               htmlFor={`edit-category-${current.id}`}
-              className="mb-1 block text-sm font-medium text-brand-ink"
+              className="mb-1 block text-sm font-semibold text-heading"
             >
               Category
             </label>

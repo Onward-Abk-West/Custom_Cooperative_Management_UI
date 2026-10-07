@@ -40,7 +40,7 @@ export function ChartCard({
     <div className="flex flex-col gap-3 rounded-2xl border border-brand-line bg-surface-card p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-heading text-sm font-bold text-brand-ink">
+          <h2 className="font-heading text-base font-bold text-heading">
             {title}
           </h2>
           {caption ? (

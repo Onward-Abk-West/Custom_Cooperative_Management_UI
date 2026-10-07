@@ -111,7 +111,7 @@ export default function AssignRolesPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-ink">Assign Roles</h1>
+        <h1 className="font-heading text-2xl font-bold text-heading">Assign Roles</h1>
         <p className="mt-1 text-sm text-brand-ink/60">
           One Supervisor, one President and many Admins per society. Supervisor, President and
           Admin can never be held together — assigning Supervisor or President to someone who is

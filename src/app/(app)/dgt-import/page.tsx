@@ -44,7 +44,7 @@ export default function DgtImportPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-ink">DGT Import</h1>
+        <h1 className="font-heading text-2xl font-bold text-heading">DGT Import</h1>
         <p className="mt-1 text-sm text-brand-ink/60">
           Imports a legacy DGT member roster and opening financial balances into the society
           currently selected in the sidebar switcher. Each row becomes one member and one
@@ -121,7 +121,7 @@ function DgtImportForm({ societyId }: { societyId: string }) {
   return (
     <div className="flex flex-col gap-6">
       <section className="max-w-lg rounded-2xl border border-brand-line bg-surface-card p-5">
-        <h2 className="font-heading text-lg font-bold text-brand-ink">Import workbook</h2>
+        <h2 className="font-heading text-lg font-bold text-heading">Import workbook</h2>
         <p className="mt-1 text-sm text-brand-ink/60">
           The same workbook can only be imported successfully once per society — a repeat upload
           is rejected rather than creating duplicate members.
@@ -129,7 +129,7 @@ function DgtImportForm({ societyId }: { societyId: string }) {
 
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
           <div>
-            <label htmlFor="dgt-file" className="mb-1 block text-sm font-medium text-brand-ink">
+            <label htmlFor="dgt-file" className="mb-1 block text-sm font-semibold text-heading">
               DGT workbook (.xlsx)
             </label>
             <input
@@ -166,7 +166,7 @@ function DgtImportForm({ societyId }: { societyId: string }) {
 
       {result && (
         <section className="rounded-2xl border border-brand-line bg-surface-card p-5">
-          <h2 className="font-heading text-lg font-bold text-brand-ink">Import summary</h2>
+          <h2 className="font-heading text-lg font-bold text-heading">Import summary</h2>
           <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
             <SummaryStat label="Total rows" value={result.totalRows} />
             <SummaryStat label="Imported" value={result.importedRows} />
@@ -177,7 +177,7 @@ function DgtImportForm({ societyId }: { societyId: string }) {
 
           {result.rowErrors.length > 0 && (
             <div className="mt-6">
-              <h3 className="text-sm font-semibold text-brand-ink">
+              <h3 className="text-sm font-semibold text-heading">
                 Rejected rows ({result.rowErrors.length})
               </h3>
               <div className="mt-2">
@@ -217,7 +217,7 @@ function DgtImportForm({ societyId }: { societyId: string }) {
 function SummaryStat({ label, value }: { label: string; value: number }) {
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase tracking-wide text-brand-ink/60">{label}</dt>
+      <dt className="text-xs font-semibold uppercase tracking-wide text-heading">{label}</dt>
       <dd className="mt-1 text-2xl font-bold text-brand-ink">{value}</dd>
     </div>
   );

@@ -25,7 +25,7 @@ function FilterField({
 }) {
   return (
     <label className="flex flex-col gap-1 text-xs">
-      <span className="font-semibold uppercase tracking-wide text-brand-ink/55">
+      <span className="font-bold uppercase tracking-wide text-heading">
         {label}
       </span>
       {children}

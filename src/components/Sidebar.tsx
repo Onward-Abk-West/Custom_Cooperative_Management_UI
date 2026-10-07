@@ -11,6 +11,9 @@ import { useSociety } from "@/lib/society-context";
 import { CooperativeMark } from "@/components/illustrations/CooperativeMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { navIconFor } from "@/components/NavIcons";
+import { usePendingPinResetCount } from "@/lib/use-pending-pin-resets";
+
+const PIN_RESETS_HREF = "/pin-resets";
 
 const COLLAPSE_KEY = "onward-sidebar-collapsed";
 const COLLAPSE_EVENT = "onward-sidebar-collapsed-change";
@@ -155,6 +158,11 @@ export function Sidebar({
   // state that nothing outside Sidebar could see.
   const { societyId, setSocietyId } = useSociety();
   const [loggingOut, setLoggingOut] = useState(false);
+  // Pending-request badge on the "PIN Reset Requests" item — only for
+  // roles whose nav includes that item (the same four roles the endpoint
+  // allows, so no call is made, and no 403 raised, for anyone else).
+  const showsPinResets = items.some((item) => item.href === PIN_RESETS_HREF);
+  const { count: pinResetCount } = usePendingPinResetCount(role, societyId, showsPinResets);
 
   async function handleLogout() {
     if (loggingOut) return;
@@ -222,7 +230,7 @@ export function Sidebar({
         } ${collapsed ? "md:w-[76px]" : "md:w-64"}`}
       >
         <div className="flex items-center gap-2 border-b border-brand-line px-4 py-4">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-green to-brand-gold-dark">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-green to-brand-green-deep">
             <CooperativeMark className="h-6 w-6" />
           </div>
           {!collapsed && (
@@ -294,14 +302,26 @@ export function Sidebar({
               const active =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
               const ItemIcon = navIconFor(item.href);
+              const badge =
+                item.href === PIN_RESETS_HREF && pinResetCount && pinResetCount > 0
+                  ? pinResetCount > 99
+                    ? "99+"
+                    : String(pinResetCount)
+                  : null;
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    title={collapsed ? item.label : undefined}
+                    title={
+                      collapsed
+                        ? badge
+                          ? `${item.label} (${badge} pending)`
+                          : item.label
+                        : undefined
+                    }
                     onClick={onCloseMobile}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                    className={`relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                       active
                         ? "bg-brand-green text-brand-cream"
                         : "text-brand-ink/70 hover:bg-brand-line/30 hover:text-brand-ink"
@@ -309,6 +329,16 @@ export function Sidebar({
                   >
                     <ItemIcon className="h-5 w-5 shrink-0" />
                     {!collapsed && <span className="truncate">{item.label}</span>}
+                    {badge && (
+                      <span
+                        aria-label={`${badge} pending`}
+                        className={`inline-flex min-w-5 items-center justify-center rounded-full bg-status-bad px-1.5 text-[11px] font-bold leading-5 text-white ${
+                          collapsed ? "absolute right-1 top-1 !min-w-4 !px-1 !text-[10px] !leading-4" : "ml-auto"
+                        }`}
+                      >
+                        {badge}
+                      </span>
+                    )}
                   </Link>
                 </li>
               );
