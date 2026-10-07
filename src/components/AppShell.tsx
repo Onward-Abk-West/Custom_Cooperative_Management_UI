@@ -61,7 +61,7 @@ export function AppShell({
             <span className="font-heading truncate text-sm font-bold text-brand-green">
               Onward Abeokuta-West
             </span>
-            <InstallPrompt className="ml-auto shrink-0" />
+            <InstallPrompt className="ml-auto shrink-0" popoverAlign="right" />
           </header>
 
           <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
