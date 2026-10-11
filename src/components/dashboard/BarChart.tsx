@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useMoneyPopup } from "@/components/money/MoneyPopup";
 
 export interface BarDatum {
   label: string;
@@ -34,11 +35,12 @@ export function BarChart({
   highlightLabel?: string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
+  const { show } = useMoneyPopup();
 
   const W = 640;
   const rowH = 40;
   const barH = 20;
-  const padR = 64;
+  const padR = 104; // room for a full-comma label such as ₦5,880,000
   const labelW = 220; // wide enough for the longest society name at 11px
   const H = data.length * rowH + 8;
   const plotW = W - labelW - padR;
@@ -108,6 +110,19 @@ export function BarChart({
               fontSize={11}
               fontWeight={600}
               fill="var(--brand-ink)"
+              role="button"
+              tabIndex={0}
+              aria-label={`${d.label}: ${valueFormatter(d.value)}. Show in words`}
+              style={{ cursor: "pointer" }}
+              onClick={(e) =>
+                show(d.value, e.currentTarget.getBoundingClientRect(), { label: d.label })
+              }
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  show(d.value, e.currentTarget.getBoundingClientRect(), { label: d.label });
+                }
+              }}
             >
               {valueFormatter(d.value)}
             </text>
@@ -115,15 +130,15 @@ export function BarChart({
             {isHover ? (
               <g>
                 <rect
-                  x={Math.min(labelW + w + 8, W - 118)}
+                  x={Math.min(labelW + w + 8, W - 264)}
                   y={y0 - 24}
-                  width={110}
+                  width={256}
                   height={20}
                   rx={6}
                   fill="var(--brand-ink)"
                 />
                 <text
-                  x={Math.min(labelW + w + 8, W - 118) + 55}
+                  x={Math.min(labelW + w + 8, W - 264) + 128}
                   y={y0 - 10}
                   textAnchor="middle"
                   fontSize={10}

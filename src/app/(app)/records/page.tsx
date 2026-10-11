@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ApiError } from "@/lib/api-client";
+import { IdCardIcon, UserIcon } from "@/components/member/MemberIcons";
+import { KeyValueRow, MemberCard } from "@/components/member/MemberCard";
+import { MemberPageHeader } from "@/components/member/MemberPageHeader";
 import { getMyProfile, type MemberProfileData } from "@/lib/api/members";
 import { requestPinReset, type PinResetRequestData } from "@/lib/api/pin-reset";
 import {
@@ -48,39 +51,61 @@ export default function RecordsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const initials = (profile?.name ?? "")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0] ?? "")
+    .join("")
+    .toUpperCase();
+
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-6">
-        <h1 className="font-heading text-2xl font-bold text-heading">My Records</h1>
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
+      <MemberPageHeader
+        title="Profile"
+        subtitle="Your membership details"
+      />
 
-        {loading && <p className="text-sm text-brand-ink/60">Loading…</p>}
-        {error && (
-          <p role="alert" className="text-sm font-semibold text-status-bad">
-            {error}
-          </p>
-        )}
+      {loading && <p className="text-sm text-brand-ink/60">Loading…</p>}
+      {error && (
+        <p role="alert" className="text-sm font-semibold text-status-bad">
+          {error}
+        </p>
+      )}
 
-        {profile && (
-          <dl className="grid max-w-lg grid-cols-1 gap-4 rounded-2xl border border-brand-line bg-surface-card p-5 sm:grid-cols-2">
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-heading">Name</dt>
-              <dd className="mt-1 text-sm text-brand-ink">{profile.name || "—"}</dd>
+      {profile && (
+        <>
+          <section className="flex items-center gap-4 rounded-3xl bg-brand-green p-4 text-brand-cream shadow-sm">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-cream/90 text-xl font-bold text-brand-green">
+              {profile.profilePictureUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.profilePictureUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                initials || <UserIcon className="h-8 w-8" />
+              )}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-lg font-bold">{profile.name || "Member"}</p>
+              <p className="truncate text-sm opacity-80">{profile.roles.join(", ") || "Member"}</p>
             </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-heading">Email</dt>
-              <dd className="mt-1 text-sm text-brand-ink">{profile.email || "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-heading">Phone number</dt>
-              <dd className="mt-1 text-sm text-brand-ink">{profile.phoneNumber || "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-heading">Roles</dt>
-              <dd className="mt-1 text-sm text-brand-ink">{profile.roles.join(", ") || "—"}</dd>
-            </div>
-          </dl>
-        )}
-      </div>
+          </section>
+
+          <MemberCard icon={<IdCardIcon className="h-6 w-6" />} title="Membership">
+            <dl>
+              <KeyValueRow label="Status" value={profile.status || "—"} />
+              <KeyValueRow label="Role" value={profile.roles.join(", ") || "—"} />
+            </dl>
+          </MemberCard>
+
+          <MemberCard icon={<UserIcon className="h-6 w-6" />} title="Contact">
+            <dl>
+              <KeyValueRow label="Full name" value={profile.name || "—"} />
+              <KeyValueRow label="Phone" value={profile.phoneNumber || "—"} />
+              <KeyValueRow label="Email" value={profile.email || "—"} />
+            </dl>
+          </MemberCard>
+        </>
+      )}
 
       <ProfileUpdateRequestCard />
       <PinResetRequestCard />
@@ -119,8 +144,8 @@ function ProfileUpdateRequestCard() {
   }
 
   return (
-    <section className="max-w-lg rounded-2xl border border-brand-line bg-surface-card p-5">
-      <h2 className="font-heading text-lg font-bold text-heading">Request a profile change</h2>
+    <section className="rounded-3xl border border-brand-line bg-surface-card p-4">
+      <h2 className="font-heading text-base font-bold text-heading">Request a profile change</h2>
       <p className="mt-1 text-sm text-brand-ink/60">
         Propose a new email or phone number. Your society&apos;s Admin
         reviews and approves the change before it takes effect.
@@ -185,8 +210,8 @@ function PinResetRequestCard() {
   }
 
   return (
-    <section className="max-w-lg rounded-2xl border border-brand-line bg-surface-card p-5">
-      <h2 className="font-heading text-lg font-bold text-heading">Request a PIN reset</h2>
+    <section id="pin-reset" className="scroll-mt-24 rounded-3xl border border-brand-line bg-surface-card p-4">
+      <h2 className="font-heading text-base font-bold text-heading">Request a PIN reset</h2>
       <p className="mt-1 text-sm text-brand-ink/60">
         Your society&apos;s Supervisor, President, or a superadmin approves
         the request, then hands you a one-time reset code to use at{" "}

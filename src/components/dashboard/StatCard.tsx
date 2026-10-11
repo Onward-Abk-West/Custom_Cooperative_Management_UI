@@ -1,3 +1,5 @@
+import { Money } from "@/components/money/MoneyPopup";
+
 /**
  * KPI stat tile — dataviz skill's "figure" contract: label, a
  * compact value, an optional signed delta (status color, always
@@ -12,7 +14,10 @@
  */
 export interface StatCardProps {
   label: string;
-  value: string;
+  /** Display text for the figure. Ignored when `money` is given. */
+  value?: string;
+  /** A naira amount: shown comma-formatted and opens the amount-in-words popup. */
+  money?: number;
   /** Signed, e.g. "+8.2%" or "-3 societies" — vs a named period. */
   delta?: string;
   deltaPeriod?: string;
@@ -33,7 +38,7 @@ function deltaSign(delta: string): 1 | -1 | 0 {
 }
 
 function Sparkline({ values, accent }: { values: number[]; accent: string }) {
-  const w = 96;
+  const w = 72;
   const h = 28;
   const pad = 3;
   const min = Math.min(...values);
@@ -75,6 +80,7 @@ function Sparkline({ values, accent }: { values: number[]; accent: string }) {
 export function StatCard({
   label,
   value,
+  money,
   delta,
   deltaPeriod = "last month",
   deltaGoodDirection = "up",
@@ -92,59 +98,65 @@ export function StatCard({
     <div className="flex flex-col gap-3 rounded-2xl border border-brand-line bg-surface-card p-5">
       {/* Label gets its own full-width row so a long one ("Loans
           outstanding") stays on a single line instead of wrapping
-          beside the sparkline; value and trend share the row below. */}
+          beside the figure; the figure then gets the full card width, so a
+          full comma-formatted amount fits, and the delta and sparkline
+          share the last row. */}
       <p
         title={label}
         className="truncate text-xs font-bold uppercase tracking-wide text-label"
       >
         {label}
       </p>
-      <div className="flex items-center justify-between gap-3">
-        <p
-          className="min-w-0 truncate text-2xl font-bold"
-          style={{ color: valueColor }}
-        >
-          {value}
-        </p>
-        {trend && trend.length >= 2 ? (
-          <Sparkline values={trend} accent={accent} />
-        ) : null}
-      </div>
+      <p
+        className="min-w-0 text-2xl font-bold tabular-nums [overflow-wrap:anywhere]"
+        style={{ color: valueColor }}
+      >
+        {money !== undefined ? <Money value={money} label={label} /> : value}
+      </p>
 
-      {delta ? (
-        <p className="flex items-center gap-1.5 text-xs">
-          <span
-            aria-hidden
-            className="inline-flex h-4 w-4 items-center justify-center"
-            style={{ color: deltaColor }}
-          >
-            {sign >= 0 ? (
-              <svg viewBox="0 0 12 12" width={10} height={10} fill="none">
-                <path
-                  d="M6 10V2M6 2L2.5 5.5M6 2l3.5 3.5"
-                  stroke="currentColor"
-                  strokeWidth={1.6}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 12 12" width={10} height={10} fill="none">
-                <path
-                  d="M6 2v8M6 10l-3.5-3.5M6 10l3.5-3.5"
-                  stroke="currentColor"
-                  strokeWidth={1.6}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            )}
-          </span>
-          <span className="font-semibold" style={{ color: deltaColor }}>
-            {delta}
-          </span>
-          <span className="text-brand-ink/50">vs {deltaPeriod}</span>
-        </p>
+      {delta || (trend && trend.length >= 2) ? (
+        <div className="flex items-center justify-between gap-3">
+          {delta ? (
+            <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs">
+              <span
+                aria-hidden
+                className="inline-flex h-4 w-4 items-center justify-center"
+                style={{ color: deltaColor }}
+              >
+                {sign >= 0 ? (
+                  <svg viewBox="0 0 12 12" width={10} height={10} fill="none">
+                    <path
+                      d="M6 10V2M6 2L2.5 5.5M6 2l3.5 3.5"
+                      stroke="currentColor"
+                      strokeWidth={1.6}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 12 12" width={10} height={10} fill="none">
+                    <path
+                      d="M6 2v8M6 10l-3.5-3.5M6 10l3.5-3.5"
+                      stroke="currentColor"
+                      strokeWidth={1.6}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </span>
+              <span className="font-semibold" style={{ color: deltaColor }}>
+                {delta}
+              </span>
+              <span className="text-brand-ink/50">vs {deltaPeriod}</span>
+            </p>
+          ) : (
+            <span />
+          )}
+          {trend && trend.length >= 2 ? (
+            <Sparkline values={trend} accent={accent} />
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

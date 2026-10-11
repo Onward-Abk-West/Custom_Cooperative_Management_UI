@@ -113,6 +113,16 @@ function AuditIcon(props: IconProps) {
   );
 }
 
+function SettingsNavIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
+      <circle cx="16" cy="7" r="2" />
+      <circle cx="8" cy="17" r="2" />
+    </Icon>
+  );
+}
+
 function DefaultIcon(props: IconProps) {
   return (
     <Icon {...props}>
@@ -131,6 +141,7 @@ export const NAV_ICONS: Record<string, (props: IconProps) => React.JSX.Element> 
   "/assign-roles": AssignRolesIcon,
   "/dgt-import": DgtImportIcon,
   "/audit-log": AuditIcon,
+  "/settings": SettingsNavIcon,
 };
 
 export function navIconFor(href: string) {

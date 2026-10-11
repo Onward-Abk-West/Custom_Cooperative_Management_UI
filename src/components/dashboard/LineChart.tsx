@@ -1,6 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useMoneyPopup } from "@/components/money/MoneyPopup";
+
+/**
+ * Rounds the top of the y-axis up to a value whose quarter steps are
+ * round numbers (1, 1.2, 1.6, 2, 2.4, 3.2, 4, 4.8, 6, 8 x a power of
+ * ten), so every gridline label is a clean ₦ figure instead of
+ * something like ₦361,250.73.
+ */
+function niceTop(x: number): number {
+  const pow = 10 ** Math.floor(Math.log10(Math.max(x, 1)));
+  const steps = [1, 1.2, 1.6, 2, 2.4, 3.2, 4, 4.8, 6, 8, 10];
+  const m = x / pow;
+  return (steps.find((st) => st >= m) ?? 10) * pow;
+}
 
 export interface LineSeries {
   key: string;
@@ -26,10 +40,12 @@ export function LineChart({
   valueFormatter: (v: number) => string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
+  const { show } = useMoneyPopup();
 
   const W = 640;
   const H = 260;
-  const padL = 48;
+  // Wide enough for a full-comma tick such as ₦1,600,000.
+  const padL = 76;
   const padR = 16;
   const padT = 16;
   const padB = 28;
@@ -39,7 +55,7 @@ export function LineChart({
 
   const allValues = series.flatMap((s) => s.values);
   const maxRaw = Math.max(...allValues, 1);
-  const maxVal = maxRaw * 1.15;
+  const maxVal = niceTop(maxRaw * 1.05);
 
   const xAt = (i: number) => padL + (n === 1 ? 0 : (i / (n - 1)) * plotW);
   const yAt = (v: number) => padT + plotH - (v / maxVal) * plotH;
@@ -182,6 +198,19 @@ export function LineChart({
                 fontSize={9}
                 fontWeight={600}
                 fill="var(--brand-ink)"
+                role="button"
+                tabIndex={0}
+                aria-label={`${s.label}: ${valueFormatter(s.values[n - 1])}. Show in words`}
+                style={{ cursor: "pointer" }}
+                onClick={(e) =>
+                  show(s.values[n - 1], e.currentTarget.getBoundingClientRect(), { label: s.label })
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    show(s.values[n - 1], e.currentTarget.getBoundingClientRect(), { label: s.label });
+                  }
+                }}
               >
                 {valueFormatter(s.values[n - 1])}
               </text>
@@ -209,7 +238,7 @@ export function LineChart({
         {/* Tooltip — one box, every series, at the hovered category. */}
         {hover !== null
           ? (() => {
-              const boxW = 132;
+              const boxW = 150;
               const boxH = 18 + series.length * 14;
               const rawX = xAt(hover) + 10;
               const bx = rawX + boxW > W - padR ? xAt(hover) - boxW - 10 : rawX;

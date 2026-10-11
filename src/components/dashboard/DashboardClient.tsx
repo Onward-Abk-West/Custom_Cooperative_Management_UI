@@ -7,6 +7,8 @@ import { LineChart } from "./LineChart";
 import { BarChart } from "./BarChart";
 import { StackedBar } from "./StackedBar";
 import { ChartCard } from "./ChartCard";
+import { Money } from "@/components/money/MoneyPopup";
+import { MemberPageHeader } from "@/components/member/MemberPageHeader";
 import { FiltersBar, type DashboardFilters, type DateRangeKey } from "./FiltersBar";
 import {
   Table,
@@ -113,7 +115,7 @@ function formatPct(n: number): string {
   return `${sign}${n.toFixed(1)}%`;
 }
 
-export function DashboardClient() {
+export function DashboardClient({ isMember = false }: { isMember?: boolean }) {
   const [filters, setFilters] = useState<DashboardFilters>({
     societyId: "all",
     range: "6m",
@@ -231,17 +233,23 @@ export function DashboardClient() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="font-heading text-xl font-bold text-heading">
-          Dashboard
-        </h1>
-        <p className="mt-1 text-sm text-brand-ink/60">
-          Figures below are sample data — the financial-records backend
-          hasn&apos;t been built yet (Dashboards &amp; Export phase). The
-          filters are fully wired to this sample set so the layout can be
-          reviewed against real interaction, not just a static mock.
-        </p>
-      </div>
+      {isMember ? (
+        // Phone-style pinned header for members; on desktop it falls
+        // back to a plain heading (MemberPageHeader handles both).
+        <MemberPageHeader title="Dashboard" subtitle="Your cooperative at a glance" />
+      ) : (
+        <div>
+          <h1 className="font-heading text-xl font-bold text-heading">
+            Dashboard
+          </h1>
+        </div>
+      )}
+      <p className="text-sm text-brand-ink/60">
+        Figures below are sample data — the financial-records backend
+        hasn&apos;t been built yet (Dashboards &amp; Export phase). The
+        filters are fully wired to this sample set so the layout can be
+        reviewed against real interaction, not just a static mock.
+      </p>
 
       {canHandlePinResets && role && (
         <PendingPinResetsCard
@@ -260,7 +268,7 @@ export function DashboardClient() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Total savings"
-          value={formatNaira(totalSavings)}
+          money={totalSavings}
           delta={formatPct(totalSavingsDelta)}
           trend={savingsMonthly}
           accent="var(--stat-green)"
@@ -268,7 +276,7 @@ export function DashboardClient() {
         />
         <StatCard
           label="Loans outstanding"
-          value={formatNaira(outstandingValue)}
+          money={outstandingValue}
           delta={formatPct(outstandingDelta)}
           trend={outstandingSeries}
           accent="var(--stat-red)"
@@ -305,8 +313,8 @@ export function DashboardClient() {
               headers: ["Month", "Savings deposits", "Loan repayments"],
               rows: MONTHS.map((m, i) => [
                 m,
-                formatNaira(savingsMonthly[i]),
-                formatNaira(repaymentMonthly[i]),
+                <Money key="s" value={savingsMonthly[i]} />,
+                <Money key="r" value={repaymentMonthly[i]} />,
               ]),
             }}
           >
@@ -338,7 +346,7 @@ export function DashboardClient() {
             headers: ["Type", "Value", "Share"],
             rows: mixSegments.map((s) => {
               const total = mixSegments.reduce((a, b) => a + b.value, 0) || 1;
-              return [s.label, formatNaira(s.value), `${Math.round((s.value / total) * 100)}%`];
+              return [s.label, <Money key="v" value={s.value} />, `${Math.round((s.value / total) * 100)}%`];
             }),
           }}
         >
@@ -355,7 +363,7 @@ export function DashboardClient() {
         caption="Compares all three societies regardless of the Society filter above — select one to highlight it here"
         table={{
           headers: ["Society", "Savings deposits"],
-          rows: barData.map((d) => [d.label, formatNaira(d.value)]),
+          rows: barData.map((d) => [d.label, <Money key="v" value={d.value} />]),
         }}
       >
         <BarChart
@@ -405,7 +413,9 @@ export function DashboardClient() {
                     <TableCell>{entry.member}</TableCell>
                     <TableCell>{societyName(entry.societyId)}</TableCell>
                     <TableCell>{entry.type}</TableCell>
-                    <TableCell className="tabular-nums">{entry.amount}</TableCell>
+                    <TableCell className="tabular-nums">
+                      <Money value={entry.amount} label={entry.type} />
+                    </TableCell>
                     <TableCell className="tabular-nums">{entry.date}</TableCell>
                   </TableRow>
                 ))

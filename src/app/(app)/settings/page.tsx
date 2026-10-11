@@ -1,0 +1,169 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import {
+  ChevronRightIcon,
+  DownloadIcon,
+  IdCardIcon,
+  KeyIcon,
+  LogoutIcon,
+  PaletteIcon,
+  ShieldIcon,
+  UserIcon,
+} from "@/components/member/MemberIcons";
+import { MemberCard } from "@/components/member/MemberCard";
+import { MemberPageHeader } from "@/components/member/MemberPageHeader";
+import { getMyProfile } from "@/lib/api/members";
+import { logout, readSessionInfo } from "@/lib/session";
+import { useMemberOnly } from "@/lib/use-member-only";
+
+/** One tappable / informational row inside a settings card. */
+function SettingsRow({
+  icon,
+  title,
+  subtitle,
+  href,
+  right,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  href?: string;
+  right?: React.ReactNode;
+}) {
+  const inner = (
+    <>
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-green/15 text-brand-green">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-brand-ink">{title}</span>
+        {subtitle ? <span className="block text-xs text-brand-ink/60">{subtitle}</span> : null}
+      </span>
+      {right ?? (href ? <ChevronRightIcon className="h-5 w-5 shrink-0 text-brand-ink/40" /> : null)}
+    </>
+  );
+  const cls = "flex items-center gap-3 border-t border-brand-line/70 py-3 first:border-t-0";
+  return href ? (
+    <Link href={href} className={`${cls} transition hover:opacity-80`}>
+      {inner}
+    </Link>
+  ) : (
+    <div className={cls}>{inner}</div>
+  );
+}
+
+export default function SettingsPage() {
+  useMemberOnly();
+  const [name, setName] = useState<string | null>(null);
+  const [contact, setContact] = useState<string | null>(null);
+  const [pictureUrl, setPictureUrl] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  useEffect(() => {
+    // Immediate placeholder from the session cookie, replaced by the
+    // real profile once it loads.
+    const info = readSessionInfo();
+    if (info) setContact(info.displayName);
+    let cancelled = false;
+    getMyProfile()
+      .then((response) => {
+        if (cancelled || !response.success || !response.data) return;
+        setName(response.data.name);
+        setContact(response.data.email || response.data.phoneNumber);
+        setPictureUrl(response.data.profilePictureUrl);
+      })
+      .catch(() => {
+        // Keep the placeholder — Settings still works without the profile.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleLogout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    await logout();
+  }
+
+  return (
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
+      <MemberPageHeader title="Settings" subtitle="Your account and this device" />
+
+      <Link
+        href="/records"
+        className="flex items-center gap-3 rounded-3xl bg-brand-green p-4 text-brand-cream shadow-sm transition hover:opacity-95"
+      >
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-cream/90 text-brand-green">
+          {pictureUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={pictureUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <UserIcon className="h-7 w-7" />
+          )}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-base font-bold">{name || "Your profile"}</span>
+          <span className="block truncate text-sm opacity-80">{contact || "Member"}</span>
+        </span>
+        <ChevronRightIcon className="h-5 w-5 shrink-0" />
+      </Link>
+
+      <MemberCard icon={<UserIcon className="h-6 w-6" />} title="Account">
+        <SettingsRow
+          icon={<IdCardIcon className="h-6 w-6" />}
+          title="Profile information"
+          subtitle="Membership, contact and identity details"
+          href="/records"
+        />
+      </MemberCard>
+
+      <MemberCard icon={<ShieldIcon className="h-6 w-6" />} title="Security" subtitle="Protects your account">
+        <SettingsRow
+          icon={<KeyIcon className="h-6 w-6" />}
+          title="Request a PIN reset"
+          subtitle="Your Supervisor or President approves it"
+          href="/records#pin-reset"
+        />
+      </MemberCard>
+
+      <MemberCard icon={<PaletteIcon className="h-6 w-6" />} title="Appearance">
+        <SettingsRow
+          icon={<PaletteIcon className="h-6 w-6" />}
+          title="Theme"
+          subtitle="Switch between sun and night"
+          right={<ThemeToggle />}
+        />
+      </MemberCard>
+
+      {/* Renders only where installing is possible (Android Chrome, or the iPhone how-to). */}
+      <InstallPrompt
+        popoverAlign="right"
+        renderRow={(control) => (
+          <MemberCard icon={<DownloadIcon className="h-6 w-6" />} title="This device">
+            <SettingsRow
+              icon={<DownloadIcon className="h-6 w-6" />}
+              title="Install the app"
+              subtitle="Add Onward to your Home Screen"
+              right={control}
+            />
+          </MemberCard>
+        )}
+      />
+
+      <button
+        type="button"
+        onClick={handleLogout}
+        disabled={loggingOut}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-status-bad/40 py-3.5 text-sm font-semibold text-status-bad transition hover:bg-status-bad/10 disabled:opacity-60"
+      >
+        <LogoutIcon className="h-5 w-5" />
+        {loggingOut ? "Logging out…" : "Log out"}
+      </button>
+    </div>
+  );
+}

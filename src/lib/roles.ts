@@ -59,7 +59,11 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", roles: "all" },
-  { label: "My Records", href: "/records", roles: ["member"] },
+  // Member-only pages. On phones these are the bottom tab bar
+  // (components/member/MemberTabBar.tsx): Home is "Dashboard" above,
+  // then Profile and Settings.
+  { label: "Profile", href: "/records", roles: ["member"] },
+  { label: "Settings", href: "/settings", roles: ["member"] },
   {
     label: "Members",
     href: "/members",
