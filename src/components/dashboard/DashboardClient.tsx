@@ -8,7 +8,6 @@ import { BarChart } from "./BarChart";
 import { StackedBar } from "./StackedBar";
 import { ChartCard } from "./ChartCard";
 import { Money } from "@/components/money/MoneyPopup";
-import { MemberPageHeader } from "@/components/member/MemberPageHeader";
 import { FiltersBar, type DashboardFilters, type DateRangeKey } from "./FiltersBar";
 import {
   Table,
@@ -115,7 +114,7 @@ function formatPct(n: number): string {
   return `${sign}${n.toFixed(1)}%`;
 }
 
-export function DashboardClient({ isMember = false }: { isMember?: boolean }) {
+export function DashboardClient() {
   const [filters, setFilters] = useState<DashboardFilters>({
     societyId: "all",
     range: "6m",
@@ -233,18 +232,12 @@ export function DashboardClient({ isMember = false }: { isMember?: boolean }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {isMember ? (
-        // Phone-style pinned header for members; on desktop it falls
-        // back to a plain heading (MemberPageHeader handles both).
-        <MemberPageHeader title="Dashboard" subtitle="Your cooperative at a glance" />
-      ) : (
-        <div>
-          <h1 className="font-heading text-xl font-bold text-heading">
-            Dashboard
-          </h1>
-        </div>
-      )}
-      <p className="text-sm text-brand-ink/60">
+      <div>
+        <h1 className="font-heading text-xl font-bold text-heading">
+          Dashboard
+        </h1>
+      </div>
+      <p className="text-xs text-brand-ink/60 sm:text-sm">
         Figures below are sample data — the financial-records backend
         hasn&apos;t been built yet (Dashboards &amp; Export phase). The
         filters are fully wired to this sample set so the layout can be
@@ -375,7 +368,6 @@ export function DashboardClient({ isMember = false }: { isMember?: boolean }) {
             "var(--stat-blue)",
             "var(--stat-gold)",
           ]}
-          valueFormatter={formatNaira}
           highlightLabel={
             filters.societyId === "all" ? undefined : societyName(filters.societyId)
           }
@@ -389,7 +381,31 @@ export function DashboardClient({ isMember = false }: { isMember?: boolean }) {
         <p className="mt-1 text-xs text-brand-ink/55">
           Sample rows, scoped by Society and Transaction type above.
         </p>
-        <div className="mt-2">
+        <ul role="list" className="mt-2 flex flex-col gap-2 sm:hidden">
+          {activityRows.length === 0 ? (
+            <li className="rounded-2xl border border-brand-line bg-surface-card p-4 text-center text-sm text-brand-ink/50">
+              No activity matches the current filters.
+            </li>
+          ) : (
+            activityRows.map((entry) => (
+              <li
+                key={`${entry.member}-${entry.date}`}
+                className="flex items-start justify-between gap-3 rounded-2xl border border-brand-line bg-surface-card p-4"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-brand-ink">{entry.member}</p>
+                  <p className="text-xs text-brand-ink/60">{entry.type}</p>
+                  <p className="truncate text-xs text-brand-ink/50">{societyName(entry.societyId)}</p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <Money value={entry.amount} label={entry.type} className="text-sm font-bold text-brand-ink" />
+                  <p className="mt-0.5 text-xs tabular-nums text-brand-ink/50">{entry.date}</p>
+                </div>
+              </li>
+            ))
+          )}
+        </ul>
+        <div className="mt-2 hidden sm:block">
           <Table>
             <TableHead>
               <TableRow>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Avatar } from "@/components/member/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ApiError } from "@/lib/api-client";
@@ -51,14 +52,6 @@ export default function RecordsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const initials = (profile?.name ?? "")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0] ?? "")
-    .join("")
-    .toUpperCase();
-
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
       <MemberPageHeader
@@ -76,14 +69,7 @@ export default function RecordsPage() {
       {profile && (
         <>
           <section className="flex items-center gap-4 rounded-3xl bg-brand-green p-4 text-brand-cream shadow-sm">
-            <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-cream/90 text-xl font-bold text-brand-green">
-              {profile.profilePictureUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.profilePictureUrl} alt="" className="h-full w-full object-cover" />
-              ) : (
-                initials || <UserIcon className="h-8 w-8" />
-              )}
-            </span>
+            <Avatar pictureUrl={profile.profilePictureUrl} name={profile.name} email={profile.email} size="lg" onDark />
             <div className="min-w-0">
               <p className="truncate text-lg font-bold">{profile.name || "Member"}</p>
               <p className="truncate text-sm opacity-80">{profile.roles.join(", ") || "Member"}</p>

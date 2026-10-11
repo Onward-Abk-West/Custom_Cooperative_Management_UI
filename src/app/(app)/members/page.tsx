@@ -10,6 +10,7 @@ import {
   TableHeaderCell,
   TableRow,
 } from "@/components/ui/Table";
+import { Avatar } from "@/components/member/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ApiError } from "@/lib/api-client";
@@ -237,18 +238,7 @@ function MembersRoster({
               <TableRow key={member.userId}>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    {member.profilePictureUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={member.profilePictureUrl}
-                        alt=""
-                        className="h-7 w-7 rounded-full border border-brand-line object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full border border-brand-line bg-brand-line/25 text-xs font-semibold text-brand-ink/50">
-                        {(member.name || member.email || "?").charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <Avatar pictureUrl={member.profilePictureUrl} name={member.name} email={member.email} size="sm" />
                     {member.name || "—"}
                   </div>
                 </TableCell>

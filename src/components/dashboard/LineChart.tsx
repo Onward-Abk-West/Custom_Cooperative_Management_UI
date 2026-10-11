@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMoneyPopup } from "@/components/money/MoneyPopup";
+import { formatNairaCompact } from "@/lib/money";
 
 /**
  * Rounds the top of the y-axis up to a value whose quarter steps are
@@ -42,10 +43,28 @@ export function LineChart({
   const [hover, setHover] = useState<number | null>(null);
   const { show } = useMoneyPopup();
 
-  const W = 640;
+  // Lay the chart out at the card's real pixel width instead of
+  // scaling a fixed 640px drawing down (which shrank the text to
+  // illegibility on phones and forced sideways scrolling that hid the
+  // latest months). Axis ticks shorten to ₦2.4M only when cramped.
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [W, setW] = useState(640);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => setW(Math.max(280, Math.round(el.getBoundingClientRect().width)));
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const H = 260;
-  // Wide enough for a full-comma tick such as ₦1,600,000.
-  const padL = 76;
+  // Cramped (phone) layouts shorten axis ticks to ₦2.4M; wider ones
+  // have room for a full-comma tick such as ₦1,600,000.
+  const compactAxis = W < 480;
+  const tickFormatter = compactAxis ? formatNairaCompact : valueFormatter;
+  const padL = compactAxis ? 46 : 76;
   const padR = 16;
   const padT = 16;
   const padB = 28;
@@ -95,15 +114,10 @@ export function LineChart({
         ))}
       </div>
 
-      {/* min-w keeps axis/tooltip text at a legible physical size on a
-          phone-width card — an SVG scaled down to fit a ~300px card
-          shrinks its text illegibly, so below that width the chart
-          gets its own horizontal scroll instead (the same relief the
-          data table already uses), rather than becoming unreadable. */}
-      <div className="overflow-x-auto">
+      <div ref={wrapRef} className="w-full">
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        className="w-full min-w-[520px]"
+        className="w-full"
         role="img"
         aria-label="Line chart of savings deposits and loan repayments over the last six months"
         onPointerMove={(e) =>
@@ -138,7 +152,7 @@ export function LineChart({
                 fill="var(--brand-ink)"
                 opacity={0.5}
               >
-                {valueFormatter(g * maxVal)}
+                {tickFormatter(g * maxVal)}
               </text>
             </g>
           );

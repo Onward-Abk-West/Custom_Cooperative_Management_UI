@@ -156,10 +156,13 @@ export function Money({
   value,
   label,
   className = "",
+  onDark = false,
 }: {
   value: number;
   label?: string;
   className?: string;
+  /** Use on a dark/coloured card: white dotted underline instead of ink. */
+  onDark?: boolean;
 }) {
   const { show } = useMoneyPopup();
   return (
@@ -168,7 +171,11 @@ export function Money({
       onClick={(e) => show(value, e.currentTarget, { label })}
       aria-haspopup="dialog"
       title="Tap to see this amount in words"
-      className={`cursor-pointer rounded-md text-inherit underline decoration-dotted decoration-brand-ink/30 underline-offset-4 tabular-nums transition hover:decoration-brand-ink/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold ${className}`}
+      className={`cursor-pointer rounded-md text-inherit underline decoration-dotted underline-offset-4 tabular-nums transition ${
+        onDark
+          ? "decoration-white/50 hover:decoration-white"
+          : "decoration-brand-ink/30 hover:decoration-brand-ink/70"
+      } focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold ${className}`}
     >
       {formatNaira(value)}
     </button>

@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useMoneyPopup } from "@/components/money/MoneyPopup";
+import { Money } from "@/components/money/MoneyPopup";
 
 export interface BarDatum {
   label: string;
@@ -9,150 +8,56 @@ export interface BarDatum {
 }
 
 /**
- * Horizontal bar chart, single series — one nominal series (which
- * society) takes one hue for every bar (color-formula.md: "the same
- * slot-1 hue … so no legend box, the title names it"). Bars are the
- * hit target themselves (no crosshair, per interaction.md's
- * bars-and-cells rule), each with its own hover/focus tooltip and a
- * direct label at the tip so the value reads without hovering too.
+ * Horizontal bar chart, one row per society: the name on top, then a
+ * bar sized against the largest value with its amount at the end. It
+ * is plain HTML/CSS rather than SVG so it reflows to any width (long
+ * society names and full comma amounts such as ₦5,880,000 never get
+ * clipped or need sideways scrolling on a phone). The amount is a
+ * <Money> button, so tapping it shows the figure in words.
  */
 export function BarChart({
   data,
   color = "var(--chart-1)",
   colors,
-  valueFormatter,
   highlightLabel,
 }: {
   data: BarDatum[];
   color?: string;
-  /** Optional per-bar colours, by row order (cycled). When given, each
-   * society keeps its own hue instead of every bar sharing `color`. */
+  /** Optional per-bar colours, by row order (cycled). */
   colors?: string[];
-  valueFormatter: (v: number) => string;
-  /** When set, dims every bar except this one — the "emphasis" form
-   * (choosing-a-form.md) used here to let the Society filter narrow
-   * this comparison without hiding the other societies for context. */
+  /** When set, dims every bar except this one — lets the Society
+   * filter narrow this comparison without hiding the other societies. */
   highlightLabel?: string;
 }) {
-  const [hover, setHover] = useState<number | null>(null);
-  const { show } = useMoneyPopup();
-
-  const W = 640;
-  const rowH = 40;
-  const barH = 20;
-  const padR = 104; // room for a full-comma label such as ₦5,880,000
-  const labelW = 220; // wide enough for the longest society name at 11px
-  const H = data.length * rowH + 8;
-  const plotW = W - labelW - padR;
   const max = Math.max(...data.map((d) => d.value), 1);
 
-  function barPath(x0: number, y0: number, w: number, h: number, r: number) {
-    const x1 = x0 + w;
-    if (w <= r) {
-      return `M${x0},${y0} L${x1},${y0} L${x1},${y0 + h} L${x0},${y0 + h} Z`;
-    }
-    return `M${x0},${y0} L${x1 - r},${y0} Q${x1},${y0} ${x1},${y0 + r} L${x1},${y0 + h - r} Q${x1},${y0 + h} ${x1 - r},${y0 + h} L${x0},${y0 + h} Z`;
-  }
-
   return (
-    // overflow-x-auto + min-w, same reasoning as LineChart: the
-    // society-name labels shrink to illegible on a phone-width card
-    // otherwise, so narrow screens get horizontal scroll instead.
-    <div className="overflow-x-auto">
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="w-full min-w-[480px]"
-      role="img"
-      aria-label="Horizontal bar chart of savings by society"
-    >
+    <ul role="list" aria-label="Savings by society" className="flex flex-col gap-4">
       {data.map((d, i) => {
-        const y0 = i * rowH + (rowH - barH) / 2;
-        const w = (d.value / max) * plotW;
-        const isHover = hover === i;
-        const isDimmed =
-          highlightLabel !== undefined && highlightLabel !== d.label && !isHover;
+        const dimmed = highlightLabel !== undefined && highlightLabel !== d.label;
+        const fill = colors && colors.length > 0 ? colors[i % colors.length] : color;
         return (
-          <g
-            key={d.label}
-            onPointerEnter={() => setHover(i)}
-            onPointerLeave={() => setHover(null)}
-            onFocus={() => setHover(i)}
-            onBlur={() => setHover(null)}
-            tabIndex={0}
-            style={{ cursor: "pointer" }}
-          >
-            <text
-              x={labelW - 10}
-              y={y0 + barH / 2 + 4}
-              textAnchor="end"
-              fontSize={11}
-              fill="var(--brand-ink)"
-              opacity={0.75}
-            >
-              {d.label}
-            </text>
-            {/* Hit area extends past the painted bar, per interaction.md. */}
-            <rect
-              x={labelW}
-              y={i * rowH}
-              width={plotW + padR}
-              height={rowH}
-              fill="transparent"
-            />
-            <path
-              d={barPath(labelW, y0, Math.max(w, 4), barH, 4)}
-              fill={colors && colors.length > 0 ? colors[i % colors.length] : color}
-              opacity={isDimmed ? 0.32 : isHover ? 1 : 0.9}
-            />
-            <text
-              x={labelW + w + 8}
-              y={y0 + barH / 2 + 4}
-              fontSize={11}
-              fontWeight={600}
-              fill="var(--brand-ink)"
-              role="button"
-              tabIndex={0}
-              aria-label={`${d.label}: ${valueFormatter(d.value)}. Show in words`}
-              style={{ cursor: "pointer" }}
-              onClick={(e) =>
-                show(d.value, e.currentTarget.getBoundingClientRect(), { label: d.label })
-              }
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  show(d.value, e.currentTarget.getBoundingClientRect(), { label: d.label });
-                }
-              }}
-            >
-              {valueFormatter(d.value)}
-            </text>
-
-            {isHover ? (
-              <g>
-                <rect
-                  x={Math.min(labelW + w + 8, W - 264)}
-                  y={y0 - 24}
-                  width={256}
-                  height={20}
-                  rx={6}
-                  fill="var(--brand-ink)"
-                />
-                <text
-                  x={Math.min(labelW + w + 8, W - 264) + 128}
-                  y={y0 - 10}
-                  textAnchor="middle"
-                  fontSize={10}
-                  fontWeight={700}
-                  fill="var(--brand-cream)"
-                >
-                  {d.label}: {valueFormatter(d.value)}
-                </text>
-              </g>
-            ) : null}
-          </g>
+          <li key={d.label} className={dimmed ? "opacity-40" : ""}>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="min-w-0 text-xs font-medium text-brand-ink/75">{d.label}</span>
+              <Money
+                value={d.value}
+                label={d.label}
+                className="shrink-0 text-sm font-bold text-brand-ink"
+              />
+            </div>
+            <div className="mt-1.5 h-3.5 w-full overflow-hidden rounded-full bg-brand-line/30">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${Math.max((d.value / max) * 100, 1.5)}%`,
+                  backgroundColor: fill,
+                }}
+              />
+            </div>
+          </li>
         );
       })}
-    </svg>
-    </div>
+    </ul>
   );
 }
