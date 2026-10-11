@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar } from "@/components/member/Avatar";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -136,12 +137,15 @@ export function Sidebar({
   role,
   societies,
   userName,
+  userPictureUrl,
   mobileOpen,
   onCloseMobile,
 }: {
   role: Role;
   societies: Society[];
   userName: string;
+  /** Profile picture, for roles that can read their own (members). */
+  userPictureUrl?: string | null;
   mobileOpen: boolean;
   onCloseMobile: () => void;
 }) {
@@ -348,9 +352,13 @@ export function Sidebar({
 
         <div className="border-t border-brand-line p-3">
           <div className={`flex items-center gap-2 ${collapsed ? "justify-center" : ""}`}>
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-line/40 text-xs font-bold text-brand-ink">
-              {initials(userName)}
-            </div>
+            {userPictureUrl ? (
+              <Avatar pictureUrl={userPictureUrl} name={userName} size="sm" className="h-8 w-8" />
+            ) : (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-line/40 text-xs font-bold text-brand-ink">
+                {initials(userName)}
+              </div>
+            )}
             {!collapsed && (
               <div className="min-w-0 flex-1 leading-tight">
                 <p className="truncate text-xs font-semibold text-brand-ink">

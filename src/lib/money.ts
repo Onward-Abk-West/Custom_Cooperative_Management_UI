@@ -42,6 +42,22 @@ export function formatNairaExact(value: number): string {
   return `${negative ? "-" : ""}${SYMBOL}${exactFormatter.format(kobo / 100)}`;
 }
 
+/**
+ * ₦2.4M / ₦600K — shortened form, used ONLY for cramped chart axis
+ * ticks on phones. Every figure a reader is meant to read or act on
+ * uses formatNaira instead.
+ */
+export function formatNairaCompact(value: number): string {
+  const v = sanitize(value);
+  const abs = Math.abs(v);
+  const sign = v < 0 ? "-" : "";
+  const trim = (n: number) => n.toFixed(1).replace(/\.0$/, "");
+  if (abs >= 1_000_000_000) return `${sign}${SYMBOL}${trim(abs / 1_000_000_000)}B`;
+  if (abs >= 1_000_000) return `${sign}${SYMBOL}${trim(abs / 1_000_000)}M`;
+  if (abs >= 1_000) return `${sign}${SYMBOL}${trim(abs / 1_000)}K`;
+  return `${sign}${SYMBOL}${Math.round(abs)}`;
+}
+
 /** 11,600,000 — comma grouping with no currency symbol. */
 export function formatNumber(value: number): string {
   return groupFormatter.format(sanitize(value));

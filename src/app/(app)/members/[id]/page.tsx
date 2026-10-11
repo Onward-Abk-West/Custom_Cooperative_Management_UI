@@ -2,6 +2,8 @@
 
 import { useEffect, useState, use as usePromise } from "react";
 import Link from "next/link";
+import { Avatar } from "@/components/member/Avatar";
+import { MemberRecordsViewer } from "@/components/member/MemberRecordsViewer";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ApiError } from "@/lib/api-client";
@@ -141,25 +143,27 @@ export default function MemberDetailPage({
           ← Look up another member
         </Link>
         <div className="mt-2 flex items-center gap-3">
-          {profile.profilePictureUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={profile.profilePictureUrl}
-              alt=""
-              className="h-12 w-12 rounded-full border border-brand-line object-cover"
-            />
-          ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-brand-line bg-brand-line/25 text-sm font-semibold text-brand-ink/50">
-              {(profile.name || profile.email || "?").charAt(0).toUpperCase()}
-            </div>
-          )}
+          <Avatar pictureUrl={profile.profilePictureUrl} name={profile.name} email={profile.email} size="lg" />
           <h1 className="font-heading text-2xl font-bold text-heading">
             {profile.name || profile.email || profile.phoneNumber || "Member"}
           </h1>
         </div>
         <p className="mt-2 text-sm text-brand-ink/60">Roles: {profile.roles.join(", ") || "—"}</p>
         <p className="mt-1 text-sm text-brand-ink/60">Status: {profile.status}</p>
+        {profile.email ? <p className="mt-1 text-sm text-brand-ink/60">Email: {profile.email}</p> : null}
+        {profile.phoneNumber ? (
+          <p className="mt-1 text-sm text-brand-ink/60">Phone: {profile.phoneNumber}</p>
+        ) : null}
       </div>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-heading text-lg font-bold text-heading">Financial records</h2>
+        <MemberRecordsViewer
+          forOfficer
+          holder={profile.name || profile.email || profile.phoneNumber || "Member"}
+          holderPictureUrl={profile.profilePictureUrl}
+        />
+      </section>
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 rounded-2xl border border-brand-line bg-surface-card p-5">
         <Input

@@ -47,3 +47,5 @@ UI_UX_IMPROVEMENTS.md
 src/components/CustomSidebar.tsx
 src/components/GroupedNavigation.tsx
 course-schema.json
+
+*.vsidx

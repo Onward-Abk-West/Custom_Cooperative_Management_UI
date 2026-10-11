@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Avatar } from "@/components/member/Avatar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import {
@@ -98,14 +99,7 @@ export default function SettingsPage() {
         href="/records"
         className="flex items-center gap-3 rounded-3xl bg-brand-green p-4 text-brand-cream shadow-sm transition hover:opacity-95"
       >
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-cream/90 text-brand-green">
-          {pictureUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={pictureUrl} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <UserIcon className="h-7 w-7" />
-          )}
-        </span>
+        <Avatar pictureUrl={pictureUrl} name={name} email={contact} size="lg" onDark />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-base font-bold">{name || "Your profile"}</span>
           <span className="block truncate text-sm opacity-80">{contact || "Member"}</span>

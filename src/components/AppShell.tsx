@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar, MenuIcon } from "@/components/Sidebar";
 import type { Role } from "@/lib/roles";
 import type { Society } from "@/lib/mock-session";
@@ -8,6 +8,7 @@ import { SocietyProvider } from "@/lib/society-context";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { MemberTabBar } from "@/components/member/MemberTabBar";
 import { MoneyPopupProvider } from "@/components/money/MoneyPopup";
+import { getMyProfile } from "@/lib/api/members";
 
 /**
  * Composes the sidebar with the rest of the authenticated shell.
@@ -42,6 +43,26 @@ export function AppShell({
   // hamburger drawer (staff have too many pages for a tab bar).
   const isMember = role === "member";
 
+  // Members can read their own profile (GET /members/me is Member-only),
+  // so their picture can show in the sidebar; other roles show initials.
+  const [pictureUrl, setPictureUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isMember) return;
+    let cancelled = false;
+    getMyProfile()
+      .then((response) => {
+        if (!cancelled && response.success && response.data) {
+          setPictureUrl(response.data.profilePictureUrl);
+        }
+      })
+      .catch(() => {
+        // Initials stay.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isMember]);
+
   return (
     <SocietyProvider initialSocietyId={currentSocietyId}>
       <MoneyPopupProvider>
@@ -50,6 +71,7 @@ export function AppShell({
           role={role}
           societies={societies}
           userName={userName}
+          userPictureUrl={pictureUrl}
           mobileOpen={mobileOpen}
           onCloseMobile={() => setMobileOpen(false)}
         />
