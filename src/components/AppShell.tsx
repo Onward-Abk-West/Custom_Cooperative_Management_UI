@@ -6,6 +6,8 @@ import type { Role } from "@/lib/roles";
 import type { Society } from "@/lib/mock-session";
 import { SocietyProvider } from "@/lib/society-context";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { MemberTabBar } from "@/components/member/MemberTabBar";
+import { MoneyPopupProvider } from "@/components/money/MoneyPopup";
 
 /**
  * Composes the sidebar with the rest of the authenticated shell.
@@ -36,9 +38,13 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Members get an app-style bottom tab bar on phones instead of the
+  // hamburger drawer (staff have too many pages for a tab bar).
+  const isMember = role === "member";
 
   return (
     <SocietyProvider initialSocietyId={currentSocietyId}>
+      <MoneyPopupProvider>
       <div className="flex min-h-screen bg-brand-cream">
         <Sidebar
           role={role}
@@ -49,26 +55,35 @@ export function AppShell({
         />
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex items-center gap-3 border-b border-brand-line bg-surface-header px-4 py-3 md:hidden">
-            <button
-              type="button"
-              onClick={() => setMobileOpen(true)}
-              aria-label="Open menu"
-              className="rounded-full p-2 text-brand-ink/70 transition hover:bg-brand-line/30"
-            >
-              <MenuIcon className="h-5 w-5" />
-            </button>
-            <span className="font-heading truncate text-sm font-bold text-brand-green">
-              Onward Abeokuta-West
-            </span>
-            <InstallPrompt className="ml-auto shrink-0" popoverAlign="right" />
-          </header>
+          {!isMember && (
+            <header className="flex items-center gap-3 border-b border-brand-line bg-surface-header px-4 py-3 md:hidden">
+              <button
+                type="button"
+                onClick={() => setMobileOpen(true)}
+                aria-label="Open menu"
+                className="rounded-full p-2 text-brand-ink/70 transition hover:bg-brand-line/30"
+              >
+                <MenuIcon className="h-5 w-5" />
+              </button>
+              <span className="font-heading truncate text-sm font-bold text-brand-green">
+                Onward Abeokuta-West
+              </span>
+              <InstallPrompt className="ml-auto shrink-0" popoverAlign="right" />
+            </header>
+          )}
 
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+          <main
+            className={`mx-auto w-full max-w-6xl flex-1 px-4 ${
+              isMember ? "pb-32 pt-0 md:pb-6 md:pt-6" : "py-6"
+            }`}
+          >
             {children}
           </main>
         </div>
+
+        {isMember && <MemberTabBar />}
       </div>
+      </MoneyPopupProvider>
     </SocietyProvider>
   );
 }

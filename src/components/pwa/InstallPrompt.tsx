@@ -75,9 +75,14 @@ function ShareIcon() {
 export function InstallPrompt({
   className = "",
   popoverAlign = "left",
+  renderRow,
 }: {
   className?: string;
   popoverAlign?: "left" | "right";
+  /** Wraps the button in caller-supplied markup (e.g. a Settings row).
+   * Only called when the button would actually render, so the wrapper
+   * never shows up empty. */
+  renderRow?: (control: React.ReactNode) => React.ReactNode;
 }) {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [iosMode, setIosMode] = useState<IosMode | null>(null);
@@ -137,7 +142,7 @@ export function InstallPrompt({
     setOpen((value) => !value);
   }
 
-  return (
+  const control = (
     <div className={className}>
     <div ref={rootRef} className="relative">
       <button
@@ -202,4 +207,6 @@ export function InstallPrompt({
     </div>
     </div>
   );
+
+  return renderRow ? renderRow(control) : control;
 }

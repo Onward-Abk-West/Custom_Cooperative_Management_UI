@@ -106,7 +106,7 @@ export interface RecentActivityRow {
   member: string;
   societyId: string;
   type: TransactionType;
-  amount: string;
+  amount: number;
   date: string;
 }
 
@@ -118,53 +118,49 @@ export const RECENT_ACTIVITY: RecentActivityRow[] = [
     member: "Adebayo T.",
     societyId: "abk-central",
     type: "Savings deposit",
-    amount: "₦25,000",
+    amount: 25000,
     date: "2026-09-12",
   },
   {
     member: "Funke O.",
     societyId: "abk-central",
     type: "Loan repayment",
-    amount: "₦12,500",
+    amount: 12500,
     date: "2026-09-14",
   },
   {
     member: "Chidi N.",
     societyId: "abk-north",
     type: "Savings deposit",
-    amount: "₦18,000",
+    amount: 18000,
     date: "2026-09-15",
   },
   {
     member: "Kemi A.",
     societyId: "abk-central",
     type: "Loan disbursement",
-    amount: "₦150,000",
+    amount: 150000,
     date: "2026-09-18",
   },
   {
     member: "Ngozi E.",
     societyId: "abk-east",
     type: "Savings deposit",
-    amount: "₦21,000",
+    amount: 21000,
     date: "2026-09-18",
   },
   {
     member: "Bola S.",
     societyId: "abk-north",
     type: "Loan repayment",
-    amount: "₦9,800",
+    amount: 9800,
     date: "2026-09-19",
   },
 ];
 
-export function formatNaira(amount: number): string {
-  const sign = amount < 0 ? "-" : "";
-  const abs = Math.abs(amount);
-  if (abs >= 1_000_000) return `${sign}₦${(abs / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${sign}₦${Math.round(abs / 1000)}K`;
-  return `${sign}₦${abs}`;
-}
+// Money is formatted in one place (src/lib/money.ts): full comma
+// format, e.g. ₦11,600,000. Re-exported so existing imports keep working.
+export { formatNaira } from "@/lib/money";
 
 /**
  * Loans outstanding before this six-month window — a cooperative's

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Money } from "@/components/money/MoneyPopup";
 
 export interface StackSegment {
   key: string;
@@ -111,6 +112,7 @@ export function StackedBar({
             <span className="tabular-nums text-brand-ink/50">
               {Math.round((s.value / total) * 100)}%
             </span>
+            <Money value={s.value} label={s.label} className="font-semibold text-brand-ink/80" />
           </span>
         ))}
       </div>

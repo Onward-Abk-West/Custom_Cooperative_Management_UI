@@ -12,7 +12,7 @@ import {
 
 export interface ChartTableData {
   headers: string[];
-  rows: (string | number)[][];
+  rows: React.ReactNode[][];
 }
 
 /**

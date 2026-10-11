@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { AmountInWords } from "@/components/money/AmountInWords";
+import { Money } from "@/components/money/MoneyPopup";
 import { ApiError, type ApiEnvelope } from "@/lib/api-client";
 import {
   createFinancialTransactionAsAdmin,
@@ -253,7 +255,7 @@ function TransactionForm({
           <div className="flex-1">
             <Input
               id="transaction-amount"
-              label="Amount"
+              label="Amount (₦ Naira)"
               type="number"
               min="0.01"
               step="0.01"
@@ -261,6 +263,7 @@ function TransactionForm({
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
             />
+            <AmountInWords raw={amount} />
           </div>
           <div className="flex-1">
             <Input
@@ -358,7 +361,7 @@ function RecordedTransactionCard({
     <div className="mt-4 rounded-xl border border-brand-gold/40 bg-brand-gold/10 p-4 text-sm">
       <div className="flex items-center justify-between gap-3">
         <p className="font-semibold text-brand-ink">
-          Recorded: {current.category} — {current.amount.toLocaleString()} on{" "}
+          Recorded: {current.category} — <Money value={current.amount} /> on{" "}
           {current.transactionDate}.
         </p>
         {!editing && (
@@ -398,13 +401,14 @@ function RecordedTransactionCard({
             <div className="flex-1">
               <Input
                 id={`edit-amount-${current.id}`}
-                label="Amount"
+                label="Amount (₦ Naira)"
                 type="number"
                 min="0.01"
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />
+              <AmountInWords raw={amount} />
             </div>
             <div className="flex-1">
               <Input
