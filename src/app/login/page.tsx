@@ -201,7 +201,7 @@ export default function LoginPage() {
         return;
       }
       // The PIN response is a full session, which the photo upload needs.
-      await establishSession(response.data);
+      establishSession(response.data);
       setStep("photo");
     } catch (err) {
       if (err instanceof ApiError) {

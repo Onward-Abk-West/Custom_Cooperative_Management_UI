@@ -9,6 +9,7 @@ import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { MemberTabBar } from "@/components/member/MemberTabBar";
 import { MoneyPopupProvider } from "@/components/money/MoneyPopup";
 import { getMyProfile } from "@/lib/api/members";
+import { PROFILE_PICTURE_EVENT } from "@/lib/api/profile-picture";
 
 /**
  * Composes the sidebar with the rest of the authenticated shell.
@@ -62,6 +63,16 @@ export function AppShell({
       cancelled = true;
     };
   }, [isMember]);
+
+  // Settings changes the picture without a reload; keep the sidebar in step.
+  useEffect(() => {
+    function onPictureChanged(event: Event) {
+      const url = (event as CustomEvent<{ url: string | null }>).detail?.url ?? null;
+      setPictureUrl(url);
+    }
+    window.addEventListener(PROFILE_PICTURE_EVENT, onPictureChanged);
+    return () => window.removeEventListener(PROFILE_PICTURE_EVENT, onPictureChanged);
+  }, []);
 
   return (
     <SocietyProvider initialSocietyId={currentSocietyId}>
