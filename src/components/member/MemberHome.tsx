@@ -37,7 +37,7 @@ export function MemberHome({ fallbackName }: { fallbackName?: string }) {
   const contact = [profile?.email, profile?.phoneNumber].filter(Boolean);
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 md:gap-6">
       <MemberPageHeader
         title={firstName ? `Hi, ${firstName}` : "My records"}
         subtitle="Your profile and financial records"
@@ -45,7 +45,7 @@ export function MemberHome({ fallbackName }: { fallbackName?: string }) {
 
       <Link
         href="/records"
-        className="flex items-center gap-3 rounded-3xl bg-brand-green p-4 text-brand-cream shadow-sm transition hover:opacity-95"
+        className="flex items-center gap-3 rounded-3xl bg-brand-green p-4 text-brand-cream shadow-sm transition hover:opacity-95 md:gap-5 md:p-6"
       >
         <Avatar
           pictureUrl={profile?.profilePictureUrl}
