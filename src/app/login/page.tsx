@@ -137,7 +137,7 @@ export default function LoginPage() {
         setError(response.message || "The PIN provided is incorrect.");
         return;
       }
-      establishSession(response.data);
+      await establishSession(response.data);
       router.push(nextOrigin());
     } catch (err) {
       if (err instanceof ApiError) {

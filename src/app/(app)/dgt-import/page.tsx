@@ -44,7 +44,7 @@ export default function DgtImportPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-heading">DGT Import</h1>
+        <h1 className="font-heading text-2xl font-bold text-heading">Import</h1>
         <p className="mt-1 text-sm text-brand-ink/60">
           Imports a legacy DGT member roster and opening financial balances into the society
           currently selected in the sidebar switcher. Each row becomes one member and one

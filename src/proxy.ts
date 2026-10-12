@@ -33,6 +33,14 @@ function isPublicPath(pathname: string) {
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // The session handlers (/api/session, /api/session/refresh) are called
+  // during sign-in — before the presence cookie exists — and to restore a
+  // session after a reload, so they must never be redirected to /login.
+  // They authenticate themselves with the httpOnly refresh cookie.
+  if (pathname === "/api/session" || pathname.startsWith("/api/session/")) {
+    return NextResponse.next();
+  }
   const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
 
   if (isPublicPath(pathname)) {

@@ -53,25 +53,28 @@ export default function RecordsPage() {
   }, []);
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
-      <MemberPageHeader
-        title="Profile"
-        subtitle="Your membership details"
-      />
+    <div className="mx-auto grid w-full max-w-5xl items-start gap-4 md:grid-cols-2">
+      {/* `contents` on phones keeps the pinned header sticking to the page, not to this wrapper. */}
+      <div className="contents md:col-span-2 md:block">
+        <MemberPageHeader
+          title="Profile"
+          subtitle="Your membership details"
+        />
+      </div>
 
-      {loading && <p className="text-sm text-brand-ink/60">Loading…</p>}
+      {loading && <p className="text-sm text-brand-ink/60 md:col-span-2">Loading…</p>}
       {error && (
-        <p role="alert" className="text-sm font-semibold text-status-bad">
+        <p role="alert" className="text-sm font-semibold text-status-bad md:col-span-2">
           {error}
         </p>
       )}
 
       {profile && (
         <>
-          <section className="flex items-center gap-4 rounded-3xl bg-brand-green p-4 text-brand-cream shadow-sm">
+          <section className="flex items-center gap-4 rounded-3xl bg-brand-green p-4 text-brand-cream shadow-sm md:col-span-2 md:p-6">
             <Avatar pictureUrl={profile.profilePictureUrl} name={profile.name} email={profile.email} size="lg" onDark />
             <div className="min-w-0">
-              <p className="truncate text-lg font-bold">{profile.name || "Member"}</p>
+              <p className="truncate text-lg font-bold md:text-2xl">{profile.name || "Member"}</p>
               <p className="truncate text-sm opacity-80">{profile.roles.join(", ") || "Member"}</p>
             </div>
           </section>
@@ -149,7 +152,7 @@ function ProfileUpdateRequestCard() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} noValidate className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+      <form onSubmit={handleSubmit} noValidate className="mt-4 flex flex-col gap-3">
         <div className="flex-1">
           <Input id="request-email" label="New email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="member@example.com" />
         </div>

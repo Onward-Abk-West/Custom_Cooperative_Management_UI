@@ -1,4 +1,4 @@
-import { setAccessToken, setRefreshToken, getRefreshToken, apiPost } from "./api-client";
+import { setAccessToken } from "./api-client";
 import type { Role } from "./roles";
 
 /**
@@ -6,9 +6,10 @@ import type { Role } from "./roles";
  * and at first-time PIN setup (src/app/first-time-signin/page.tsx) — see
  * `establishSession` below, the single place both call into.
  *
- * This is deliberately NOT the access/refresh token: those stay exactly
- * where api-client.ts already keeps them (access token in JS memory only,
- * refresh token wherever the backend puts it). This cookie carries only
+ * This is deliberately NOT the access/refresh token: the access token
+ * stays in JS memory only (api-client.ts) and the refresh token lives
+ * in an httpOnly cookie managed by the /api/session route handlers
+ * (src/app/api/session). This cookie carries only
  * the non-sensitive fields the *server-rendered* (app)/layout.tsx needs
  * to pick the right sidebar/nav for the signed-in role without waiting
  * on a client-side fetch — role, userId, societyId, and an identifier to
@@ -16,20 +17,9 @@ import type { Role } from "./roles";
  * is that both the server layout (via next/headers' cookies()) and
  * client components can read it directly.
  *
- * Known gap, still not fixed here: both the access token AND the
- * refresh token (see setRefreshToken in api-client.ts) live in JS
- * memory only, by design (never localStorage). api-client.ts's
- * refreshAccessToken() now correctly POSTs the refresh token to
- * /api/v1/auth/refresh (this was previously broken — it hit the wrong
- * path with no body, expecting an httpOnly cookie the backend never
- * sets), so an expired *access* token recovers silently mid-session.
- * But a hard page reload still clears both in-memory tokens with
- * nothing to reconstruct them from, so the user is bounced back
- * through /login on refresh regardless. Fixing that for real needs
- * either a persisted (non-httpOnly, since this is a memory-only
- * client) refresh token store or a backend-set httpOnly cookie plus a
- * refresh call that doesn't require the token in the body at all.
- * Out of scope for this pass.
+ * A hard page reload clears the in-memory access token; the next API
+ * call 401s and api-client.ts silently re-issues one from the httpOnly
+ * refresh cookie, so a reload no longer signs the user out.
  */
 
 const SESSION_INFO_COOKIE = "onward_session_info";
@@ -169,12 +159,38 @@ const AUTH_SESSION_COOKIE = "onward_session";
 const AUTH_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 /**
+ * Hands the refresh token to the same-origin /api/session handler, which
+ * stores it in an httpOnly cookie. Awaited by establishSession so the
+ * cookie exists before the caller navigates. A failure is logged, not
+ * thrown: the user is still signed in for this page load, and a reload
+ * will simply ask them to sign in again.
+ */
+async function persistRefreshToken(data: AuthSessionData) {
+  try {
+    const res = await fetch("/api/session", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        refreshToken: data.refreshToken,
+        refreshTokenExpiresAtUtc: data.refreshTokenExpiresAtUtc,
+      }),
+    });
+    if (!res.ok) console.warn("Could not persist the session (HTTP " + res.status + ").");
+  } catch (err) {
+    console.warn("Could not persist the session.", err);
+  }
+}
+
+/**
  * Single place that turns a successful login (POST /api/v1/auth/login)
  * or first-time PIN setup (POST /api/v1/auth/first-time/create-pin)
  * response into an established client session:
  *
  *  1. stores the access token in memory (api-client.ts) — never
- *     localStorage, per that module's own doc comment;
+ *     localStorage, per that module's own doc comment — and hands the
+ *     refresh token to /api/session, which keeps it in an httpOnly
+ *     cookie so the session survives a page reload;
  *  2. writes the plain presence-only `onward_session` cookie src/proxy.ts
  *     gates authenticated routes on;
  *  3. writes the readable session-info cookie this module owns, which
@@ -186,9 +202,9 @@ const AUTH_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
  * means a future field (e.g. once the backend adds a display name)
  * only needs to change here.
  */
-export function establishSession(data: AuthSessionData) {
+export async function establishSession(data: AuthSessionData) {
   setAccessToken(data.accessToken);
-  setRefreshToken(data.refreshToken);
+  await persistRefreshToken(data);
   if (typeof document !== "undefined") {
     document.cookie = `${AUTH_SESSION_COOKIE}=1; path=/; max-age=${AUTH_SESSION_MAX_AGE_SECONDS}; SameSite=Lax`;
   }
@@ -206,7 +222,6 @@ export function establishSession(data: AuthSessionData) {
  */
 export function endSession() {
   setAccessToken(null);
-  setRefreshToken(null);
   clearSessionInfo();
   if (typeof document !== "undefined") {
     document.cookie = `${AUTH_SESSION_COOKIE}=; path=/; max-age=0`;
@@ -215,10 +230,10 @@ export function endSession() {
 
 /**
  * Deliberate sign-out — the Sidebar's "Log out" button calls this and
- * nothing else. Best-effort revokes the refresh token server-side
- * (POST /api/v1/auth/logout, AuthController.Logout) so it can't be
- * replayed, but a failed or skipped revoke (no refresh token on hand,
- * network error, token already expired/revoked) never blocks the
+ * nothing else. DELETE /api/session revokes the refresh token on the
+ * API (POST /api/v1/auth/logout, AuthController.Logout) using the
+ * httpOnly cookie and clears that cookie, so it can't be replayed; a
+ * failed revoke (network error, token already expired/revoked) never blocks the
  * actual sign-out — the local session ends and the user lands on
  * /login regardless. Deliberately a hard navigation for the same
  * reason api-client.ts's own redirect is: it throws away any
@@ -226,13 +241,10 @@ export function endSession() {
  * it survive a client-side route transition.
  */
 export async function logout() {
-  const token = getRefreshToken();
-  if (token) {
-    try {
-      await apiPost("/api/v1/auth/logout", { RefreshToken: token }, { skipAuthRetry: true });
-    } catch {
-      // Best-effort — see doc comment above.
-    }
+  try {
+    await fetch("/api/session", { method: "DELETE", credentials: "same-origin" });
+  } catch {
+    // Best-effort — see doc comment above.
   }
   endSession();
   if (typeof window !== "undefined") {

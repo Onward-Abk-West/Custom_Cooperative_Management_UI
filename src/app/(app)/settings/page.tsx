@@ -112,12 +112,15 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
-      <MemberPageHeader title="Settings" subtitle="Your account and this device" />
+    <div className="mx-auto grid w-full max-w-5xl items-start gap-4 md:grid-cols-2">
+      {/* `contents` on phones keeps the pinned header sticking to the page, not to this wrapper. */}
+      <div className="contents md:col-span-2 md:block">
+        <MemberPageHeader title="Settings" subtitle="Your account and this device" />
+      </div>
 
       <Link
         href="/records"
-        className="flex items-center gap-3 rounded-3xl bg-brand-green p-4 text-brand-cream shadow-sm transition hover:opacity-95"
+        className="flex items-center gap-3 rounded-3xl bg-brand-green p-4 text-brand-cream shadow-sm transition hover:opacity-95 md:col-span-2 md:p-6"
       >
         <Avatar pictureUrl={pictureUrl} name={name} email={contact} size="lg" onDark />
         <span className="min-w-0 flex-1">
@@ -215,7 +218,7 @@ export default function SettingsPage() {
         type="button"
         onClick={handleLogout}
         disabled={loggingOut}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-status-bad/40 py-3.5 text-sm font-semibold text-status-bad transition hover:bg-status-bad/10 disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-status-bad/40 py-3.5 text-sm font-semibold text-status-bad transition hover:bg-status-bad/10 disabled:opacity-60 md:col-span-2 md:justify-self-end md:w-auto md:px-10"
       >
         <LogoutIcon className="h-5 w-5" />
         {loggingOut ? "Logging out…" : "Log out"}

@@ -136,86 +136,107 @@ export default function MemberDetailPage({
     );
   }
 
+  const displayName = profile.name || profile.email || profile.phoneNumber || "Member";
+
   return (
-    <div className="mx-auto flex max-w-lg flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <div>
         <Link href="/members" className="text-sm font-medium text-brand-gold-dark hover:underline">
           ← Look up another member
         </Link>
-        <div className="mt-2 flex items-center gap-3">
+        <div className="mt-3 flex flex-col gap-4 rounded-3xl border border-brand-line bg-surface-card p-4 sm:flex-row sm:items-center md:p-6">
           <Avatar pictureUrl={profile.profilePictureUrl} name={profile.name} email={profile.email} size="lg" />
-          <h1 className="font-heading text-2xl font-bold text-heading">
-            {profile.name || profile.email || profile.phoneNumber || "Member"}
-          </h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-heading text-2xl font-bold text-heading">{displayName}</h1>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold">
+              <span className="rounded-full bg-brand-green/15 px-3 py-1 text-brand-green">
+                {profile.status}
+              </span>
+              <span className="rounded-full bg-brand-line/40 px-3 py-1 text-brand-ink/70">
+                {profile.roles.join(", ") || "No role"}
+              </span>
+            </div>
+          </div>
+          <dl className="flex flex-col gap-1 text-sm text-brand-ink/70 sm:items-end">
+            {profile.email ? (
+              <div className="break-all">
+                <dt className="sr-only">Email</dt>
+                <dd>{profile.email}</dd>
+              </div>
+            ) : null}
+            {profile.phoneNumber ? (
+              <div>
+                <dt className="sr-only">Phone</dt>
+                <dd>{profile.phoneNumber}</dd>
+              </div>
+            ) : null}
+          </dl>
         </div>
-        <p className="mt-2 text-sm text-brand-ink/60">Roles: {profile.roles.join(", ") || "—"}</p>
-        <p className="mt-1 text-sm text-brand-ink/60">Status: {profile.status}</p>
-        {profile.email ? <p className="mt-1 text-sm text-brand-ink/60">Email: {profile.email}</p> : null}
-        {profile.phoneNumber ? (
-          <p className="mt-1 text-sm text-brand-ink/60">Phone: {profile.phoneNumber}</p>
-        ) : null}
       </div>
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-lg font-bold text-heading">Financial records</h2>
         <MemberRecordsViewer
           forOfficer
-          holder={profile.name || profile.email || profile.phoneNumber || "Member"}
+          holder={displayName}
           holderPictureUrl={profile.profilePictureUrl}
         />
       </section>
 
-      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 rounded-2xl border border-brand-line bg-surface-card p-5">
-        <Input
-          id="member-name"
-          label="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <Input
-          id="member-email"
-          label="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <Input
-          id="member-phone"
-          label="Phone number"
-          type="tel"
-          value={phoneNumber}
-          onChange={(e) => setPhoneNumber(e.target.value)}
-        />
-        {saveError && (
-          <p role="alert" className="text-sm font-semibold text-status-bad">
-            {saveError}
-          </p>
-        )}
-        {saved && <p className="text-sm text-brand-green">Saved.</p>}
-        <Button type="submit" disabled={saving}>
-          {saving ? "Saving…" : "Save changes"}
-        </Button>
-      </form>
-
-      {scope && (
-        <>
-          <MemberStatusCard
-            scope={scope}
-            societyId={profile.societyId}
-            memberId={memberId}
-            currentStatus={profile.status}
-            onChanged={(status) => setProfile((p) => (p ? { ...p, status } : p))}
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 rounded-2xl border border-brand-line bg-surface-card p-5">
+          <h2 className="font-heading text-lg font-bold text-heading">Contact details</h2>
+          <Input
+            id="member-name"
+            label="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
           />
-          <div className="rounded-2xl border border-dashed border-brand-line bg-surface-card p-5 text-sm text-brand-ink/70">
-            Assign or revoke this member&apos;s Supervisor, President or Admin role from{" "}
-            <Link href="/assign-roles" className="font-medium text-brand-gold-dark hover:underline">
-              Assign Roles
-            </Link>{" "}
-            in the sidebar.
+          <Input
+            id="member-email"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Input
+            id="member-phone"
+            label="Phone number"
+            type="tel"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+          />
+          {saveError && (
+            <p role="alert" className="text-sm font-semibold text-status-bad">
+              {saveError}
+            </p>
+          )}
+          {saved && <p className="text-sm text-brand-green">Saved.</p>}
+          <Button type="submit" disabled={saving}>
+            {saving ? "Saving…" : "Save changes"}
+          </Button>
+        </form>
+
+        {scope && (
+          <div className="flex flex-col gap-6">
+            <MemberStatusCard
+              scope={scope}
+              societyId={profile.societyId}
+              memberId={memberId}
+              currentStatus={profile.status}
+              onChanged={(status) => setProfile((p) => (p ? { ...p, status } : p))}
+            />
+            <ReissueCredentialCard scope={scope} societyId={profile.societyId} memberId={memberId} />
+            <div className="rounded-2xl border border-dashed border-brand-line bg-surface-card p-5 text-sm text-brand-ink/70">
+              Assign or revoke this member&apos;s Supervisor, President or Admin role from{" "}
+              <Link href="/assign-roles" className="font-medium text-brand-gold-dark hover:underline">
+                Assign Roles
+              </Link>{" "}
+              in the sidebar.
+            </div>
           </div>
-          <ReissueCredentialCard scope={scope} societyId={profile.societyId} memberId={memberId} />
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 }
