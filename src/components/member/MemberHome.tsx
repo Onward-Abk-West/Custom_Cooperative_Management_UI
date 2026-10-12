@@ -7,6 +7,7 @@ import { ChevronRightIcon } from "./MemberIcons";
 import { MemberPageHeader } from "./MemberPageHeader";
 import { MemberRecordsViewer } from "./MemberRecordsViewer";
 import { getMyProfile, type MemberProfileData } from "@/lib/api/members";
+import { PROFILE_PICTURE_EVENT } from "@/lib/api/profile-picture";
 
 /**
  * Member dashboard (what /dashboard renders for the Member role — see
@@ -30,6 +31,15 @@ export function MemberHome({ fallbackName }: { fallbackName?: string }) {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    function onPictureChanged(event: Event) {
+      const url = (event as CustomEvent<{ url: string | null }>).detail?.url ?? null;
+      setProfile((current) => (current ? { ...current, profilePictureUrl: url } : current));
+    }
+    window.addEventListener(PROFILE_PICTURE_EVENT, onPictureChanged);
+    return () => window.removeEventListener(PROFILE_PICTURE_EVENT, onPictureChanged);
   }, []);
 
   const holder = profile?.name || fallbackName || "Member";
