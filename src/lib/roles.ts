@@ -114,7 +114,7 @@ export const NAV_ITEMS: NavItem[] = [
   // old list-all-societies table (/societies) isn't linked from
   // anywhere in the UI anymore.
   {
-    label: "DGT Import",
+    label: "Import",
     href: "/dgt-import",
     // DeveloperSuperadminDgtImportsController's [Authorize(Roles =
     // "Developer Superadmin")] is exact — not Onward Superadmin too,

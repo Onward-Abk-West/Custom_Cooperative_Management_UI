@@ -1,17 +1,18 @@
 /**
- * Client-side API client for calls to the backend, once it exists.
+ * Client-side API client for calls to the backend.
  *
  * Auth contract, confirmed against AbkWestCoop.Api's AuthController:
  * login returns a short-lived access token AND a refresh token in the
- * response BODY (no httpOnly cookie involved at all), both held here
- * in memory only (never localStorage, to keep them out of reach of an
- * XSS payload — see setAccessToken/setRefreshToken below). `apiFetch`
- * attaches the access token as a Bearer header; on a 401 it tries
- * exactly one refresh (POST /api/v1/auth/refresh, sending the
- * in-memory refresh token in the body) before retrying the original
- * request, and only signs the user out (clears both tokens, the
- * session cookies, and redirects to /login) if the refresh itself
- * fails.
+ * response BODY. The access token is held here in JS memory only (never
+ * localStorage). The refresh token is handed straight to the same-origin
+ * /api/session route handler, which keeps it in an httpOnly cookie —
+ * page scripts never read it again. `apiFetch` attaches the access token
+ * as a Bearer header; on a 401 (which is also what happens on the first
+ * call after a page reload, when the in-memory token is gone) it asks
+ * /api/session/refresh for a new access token and retries the original
+ * request once. It only signs the user out (clears the session cookies
+ * and redirects to /login) when the refresh is definitively rejected; a
+ * network or server error during refresh keeps the session.
  *
  * This is separate from src/proxy.ts's onward_session cookie check,
  * which only gates page navigation server-side — this client handles
@@ -26,7 +27,6 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000";
 
 let accessToken: string | null = null;
-let refreshToken: string | null = null;
 
 export function setAccessToken(token: string | null) {
   accessToken = token;
@@ -34,23 +34,6 @@ export function setAccessToken(token: string | null) {
 
 export function getAccessToken() {
   return accessToken;
-}
-
-/**
- * Held in memory alongside the access token (never localStorage, same
- * rationale) because the backend does NOT set an httpOnly refresh
- * cookie — AuthController.Refresh/Logout both read the refresh token
- * from the request BODY (RefreshAuthenticationSessionRequest /
- * RevokeAuthenticationSessionRequest). session.ts's establishSession
- * is the only place this gets set, from the login/first-time-signin
- * response's `refreshToken` field.
- */
-export function setRefreshToken(token: string | null) {
-  refreshToken = token;
-}
-
-export function getRefreshToken() {
-  return refreshToken;
 }
 
 /**
@@ -82,33 +65,53 @@ export class ApiError extends Error {
   }
 }
 
-async function refreshAccessToken(): Promise<string | null> {
-  if (!refreshToken) return null;
-  try {
-    // Correct path (api/v1/auth/refresh, matching every other endpoint
-    // this client calls) and payload (the refresh token in the JSON
-    // body — see the comment on setRefreshToken above for why this
-    // can't rely on a cookie the backend never sets). This previously
-    // pointed at /auth/refresh with no body and so could never
-    // succeed; fixed as part of wiring up logout(), which depends on
-    // the same in-memory refresh token this fixes the retrieval of.
-    const res = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ RefreshToken: refreshToken }),
+type RefreshOutcome =
+  | { kind: "ok"; token: string }
+  /** The session is definitely over (no cookie, or the API rejected it). */
+  | { kind: "invalid" }
+  /** Could not find out (network / server error) — keep the session. */
+  | { kind: "unavailable" };
+
+/**
+ * The refresh token is NOT held in JavaScript at all. It lives in an
+ * httpOnly cookie that only the same-origin /api/session/refresh route
+ * handler (src/app/api/session/refresh/route.ts) can read; that handler
+ * calls POST /api/v1/auth/refresh and returns just a fresh access token.
+ * This is what keeps a member signed in across a page reload: the
+ * in-memory access token is gone after a reload, the first API call
+ * 401s, and this silently re-issues it from the cookie.
+ *
+ * Concurrent 401s (a page firing several requests at once) share ONE
+ * in-flight refresh. The API rotates the refresh token on every use, so
+ * a second parallel refresh with the old token would be rejected and
+ * sign the user out.
+ */
+let refreshInFlight: Promise<RefreshOutcome> | null = null;
+
+function refreshAccessToken(): Promise<RefreshOutcome> {
+  if (!refreshInFlight) {
+    refreshInFlight = requestNewAccessToken().finally(() => {
+      refreshInFlight = null;
     });
-    if (!res.ok) return null;
-    const envelope = (await res.json()) as ApiEnvelope<{
-      accessToken?: string;
-      refreshToken?: string;
-    }>;
-    if (!envelope.success || !envelope.data?.accessToken) return null;
-    accessToken = envelope.data.accessToken;
-    if (envelope.data.refreshToken) refreshToken = envelope.data.refreshToken;
-    return accessToken;
+  }
+  return refreshInFlight;
+}
+
+async function requestNewAccessToken(): Promise<RefreshOutcome> {
+  try {
+    const res = await fetch("/api/session/refresh", {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    if (res.status === 401) return { kind: "invalid" };
+    if (!res.ok) return { kind: "unavailable" };
+    const body = (await res.json()) as { accessToken?: string };
+    if (!body.accessToken) return { kind: "invalid" };
+    accessToken = body.accessToken;
+    return { kind: "ok", token: body.accessToken };
   } catch {
-    return null;
+    return { kind: "unavailable" };
   }
 }
 
@@ -174,19 +177,25 @@ export async function apiFetch<T = unknown>(
   let res = await doFetch();
 
   if (res.status === 401 && !skipAuthRetry) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
+    const outcome = await refreshAccessToken();
+    if (outcome.kind === "ok") {
       res = await doFetch();
+    } else if (outcome.kind === "unavailable") {
+      // Don't sign anyone out because the network or API blipped.
+      throw new ApiError(
+        503,
+        "Could not refresh your session. Check your connection and try again."
+      );
     } else {
       accessToken = null;
-      refreshToken = null;
       if (typeof document !== "undefined") {
         // Mirror session.ts's endSession() cookie clears here too. This
         // module can't import session.ts without creating a cycle
-        // (session.ts already imports setAccessToken/setRefreshToken
-        // from here), so these two names are duplicated rather than
-        // shared — keep them in sync with SESSION_INFO_COOKIE /
-        // AUTH_SESSION_COOKIE in session.ts if either ever changes.
+        // (session.ts already imports setAccessToken from here), so
+        // these two names are duplicated rather than shared — keep them
+        // in sync with SESSION_INFO_COOKIE / AUTH_SESSION_COOKIE in
+        // session.ts if either ever changes. (The httpOnly refresh
+        // cookie was already cleared by /api/session/refresh.)
         document.cookie = "onward_session=; path=/; max-age=0";
         document.cookie = "onward_session_info=; path=/; max-age=0";
       }
