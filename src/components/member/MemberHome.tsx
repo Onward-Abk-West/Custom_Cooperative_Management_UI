@@ -7,6 +7,7 @@ import { ChevronRightIcon } from "./MemberIcons";
 import { MemberPageHeader } from "./MemberPageHeader";
 import { MemberRecordsViewer } from "./MemberRecordsViewer";
 import { getMyProfile, type MemberProfileData } from "@/lib/api/members";
+import { PROFILE_PICTURE_EVENT } from "@/lib/api/profile-picture";
 
 /**
  * Member dashboard (what /dashboard renders for the Member role — see
@@ -32,12 +33,21 @@ export function MemberHome({ fallbackName }: { fallbackName?: string }) {
     };
   }, []);
 
+  useEffect(() => {
+    function onPictureChanged(event: Event) {
+      const url = (event as CustomEvent<{ url: string | null }>).detail?.url ?? null;
+      setProfile((current) => (current ? { ...current, profilePictureUrl: url } : current));
+    }
+    window.addEventListener(PROFILE_PICTURE_EVENT, onPictureChanged);
+    return () => window.removeEventListener(PROFILE_PICTURE_EVENT, onPictureChanged);
+  }, []);
+
   const holder = profile?.name || fallbackName || "Member";
   const firstName = profile?.name ? profile.name.split(/\s+/)[0] : null;
   const contact = [profile?.email, profile?.phoneNumber].filter(Boolean);
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 md:gap-6">
       <MemberPageHeader
         title={firstName ? `Hi, ${firstName}` : "My records"}
         subtitle="Your profile and financial records"
@@ -45,7 +55,7 @@ export function MemberHome({ fallbackName }: { fallbackName?: string }) {
 
       <Link
         href="/records"
-        className="flex items-center gap-3 rounded-3xl bg-brand-green p-4 text-brand-cream shadow-sm transition hover:opacity-95"
+        className="flex items-center gap-3 rounded-3xl bg-brand-green p-4 text-brand-cream shadow-sm transition hover:opacity-95 md:gap-5 md:p-6"
       >
         <Avatar
           pictureUrl={profile?.profilePictureUrl}

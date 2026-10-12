@@ -49,3 +49,5 @@ src/components/GroupedNavigation.tsx
 course-schema.json
 
 *.vsidx
+# Visual Studio local state
+.vs/

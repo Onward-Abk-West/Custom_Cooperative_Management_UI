@@ -18,6 +18,8 @@ import {
 import { MemberCard } from "@/components/member/MemberCard";
 import { MemberPageHeader } from "@/components/member/MemberPageHeader";
 import { getMyProfile } from "@/lib/api/members";
+import { removeProfilePicture } from "@/lib/api/profile-picture";
+import { ProfilePhotoPicker } from "@/components/member/ProfilePhotoPicker";
 import { logout, readSessionInfo } from "@/lib/session";
 import { useMemberOnly } from "@/lib/use-member-only";
 
@@ -63,6 +65,9 @@ export default function SettingsPage() {
   const [contact, setContact] = useState<string | null>(null);
   const [pictureUrl, setPictureUrl] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [editingPhoto, setEditingPhoto] = useState(false);
+  const [removingPhoto, setRemovingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   useEffect(() => {
     // Immediate placeholder from the session cookie, replaced by the
@@ -84,6 +89,21 @@ export default function SettingsPage() {
       cancelled = true;
     };
   }, []);
+
+  async function handleRemovePhoto() {
+    if (removingPhoto) return;
+    setPhotoError(null);
+    setRemovingPhoto(true);
+    try {
+      const response = await removeProfilePicture();
+      if (response.success) setPictureUrl(null);
+      else setPhotoError(response.message || "Your photo could not be removed.");
+    } catch {
+      setPhotoError("Your photo could not be removed. Please try again.");
+    } finally {
+      setRemovingPhoto(false);
+    }
+  }
 
   async function handleLogout() {
     if (loggingOut) return;
@@ -108,6 +128,48 @@ export default function SettingsPage() {
       </Link>
 
       <MemberCard icon={<UserIcon className="h-6 w-6" />} title="Account">
+        <SettingsRow
+          icon={<UserIcon className="h-6 w-6" />}
+          title="Profile photo"
+          subtitle={pictureUrl ? "Change or remove your passport photo" : "Add your passport photo"}
+          right={
+            <button
+              type="button"
+              onClick={() => {
+                setPhotoError(null);
+                setEditingPhoto((open) => !open);
+              }}
+              className="shrink-0 rounded-full border border-brand-line px-3 py-1.5 text-xs font-semibold text-brand-ink transition hover:bg-brand-line/25"
+            >
+              {editingPhoto ? "Close" : pictureUrl ? "Change" : "Add"}
+            </button>
+          }
+        />
+        {editingPhoto ? (
+          <div className="border-t border-brand-line/70 py-4">
+            <ProfilePhotoPicker
+              onUploaded={(url) => {
+                setPictureUrl(url);
+                setEditingPhoto(false);
+              }}
+            />
+            {pictureUrl ? (
+              <button
+                type="button"
+                onClick={handleRemovePhoto}
+                disabled={removingPhoto}
+                className="mt-3 w-full text-center text-xs font-semibold text-status-bad hover:underline disabled:opacity-60"
+              >
+                {removingPhoto ? "Removing…" : "Remove current photo"}
+              </button>
+            ) : null}
+            {photoError ? (
+              <p role="alert" className="mt-2 text-center text-sm font-semibold text-status-bad">
+                {photoError}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <SettingsRow
           icon={<IdCardIcon className="h-6 w-6" />}
           title="Profile information"

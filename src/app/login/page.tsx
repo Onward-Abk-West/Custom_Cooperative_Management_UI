@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { ProfilePhotoPicker } from "@/components/member/ProfilePhotoPicker";
 import { apiPost, ApiError, type ApiEnvelope } from "@/lib/api-client";
 import { establishSession, type AuthSessionData } from "@/lib/session";
 import { identifyAccount, LOGIN_STEP } from "@/lib/api/account-identify";
@@ -23,8 +24,11 @@ import { verifyPinReset, completePinReset } from "@/lib/api/pin-reset";
  *
  *   - Pin              -> normal PIN login (POST /api/v1/auth/login)
  *   - FirstTime        -> enter the temporary credential an admin gave
- *                         them, then create a PIN (first-time-signin's
- *                         old job, folded in here)
+ *                         them, create a PIN (first-time-signin's old job,
+ *                         folded in here), then add a passport photo. The
+ *                         photo step comes AFTER the PIN because uploading
+ *                         needs the session that creating the PIN issues;
+ *                         it can be skipped and added later in Settings.
  *   - PinResetCode     -> enter the one-time reset code an officer
  *                         approved, then choose a new PIN (forgot-pin's
  *                         old job, folded in here)
@@ -45,6 +49,7 @@ type Step =
   | "pin"
   | "firstTimeCredential"
   | "createPin"
+  | "photo"
   | "pinResetCredential"
   | "resetPin"
   | "resetDone"
@@ -195,8 +200,9 @@ export default function LoginPage() {
         setError(response.message || "Your PIN could not be created.");
         return;
       }
+      // The PIN response is a full session, which the photo upload needs.
       establishSession(response.data);
-      router.push(nextOrigin());
+      setStep("photo");
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message || "Your PIN could not be created.");
@@ -370,6 +376,32 @@ export default function LoginPage() {
     );
   }
 
+  if (step === "photo") {
+    return (
+      <AuthCard
+        panelTitle="Nearly there!"
+        panelSubtitle="Onward Abeokuta-West Cooperative Management System"
+      >
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-gold-dark">
+          Step 3 of 3
+        </p>
+        <h1 className="font-heading mt-1 text-2xl font-bold text-brand-ink sm:text-3xl">
+          Add your passport photo
+        </h1>
+        <p className="mt-2 text-sm text-brand-ink/60">
+          Your photo appears beside your name in the app. You can change it
+          later in Settings.
+        </p>
+        <div className="mt-8">
+          <ProfilePhotoPicker
+            onUploaded={() => router.push(nextOrigin())}
+            onSkip={() => router.push(nextOrigin())}
+          />
+        </div>
+      </AuthCard>
+    );
+  }
+
   if (step === "createPin" || step === "resetPin") {
     const isFirstTime = step === "createPin";
     return (
@@ -378,7 +410,7 @@ export default function LoginPage() {
         panelSubtitle="Onward Abeokuta-West Cooperative Management System"
       >
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-gold-dark">
-          Step 2 of 2
+          {isFirstTime ? "Step 2 of 3" : "Step 2 of 2"}
         </p>
         <h1 className="font-heading mt-1 text-2xl font-bold text-brand-ink sm:text-3xl">
           {isFirstTime ? "Create your PIN" : "Choose a new PIN"}
@@ -432,7 +464,7 @@ export default function LoginPage() {
           )}
 
           <Button type="submit" disabled={submitting} className="mt-2">
-            {submitting ? "Saving…" : isFirstTime ? "Create PIN and sign in" : "Reset PIN"}
+            {submitting ? "Saving…" : isFirstTime ? "Create PIN" : "Reset PIN"}
           </Button>
         </form>
       </AuthCard>
@@ -447,7 +479,7 @@ export default function LoginPage() {
         panelSubtitle="Onward Abeokuta-West Cooperative Management System"
       >
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-gold-dark">
-          Step 1 of 2
+          {isFirstTime ? "Step 1 of 3" : "Step 1 of 2"}
         </p>
         <h1 className="font-heading mt-1 text-2xl font-bold text-brand-ink sm:text-3xl">
           {isFirstTime ? "Set up your account" : "Enter your reset code"}
