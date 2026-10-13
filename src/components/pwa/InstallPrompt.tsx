@@ -87,6 +87,10 @@ export function InstallPrompt({
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [iosMode, setIosMode] = useState<IosMode | null>(null);
   const [open, setOpen] = useState(false);
+  // True from the tap until Chrome's install dialog closes. Chrome can take
+  // a noticeable moment to show that dialog, and without this the button
+  // looks dead and gets tapped again.
+  const [pending, setPending] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -133,10 +137,20 @@ export function InstallPrompt({
   if (!deferred && !iosMode) return null;
 
   async function onClick() {
+    if (pending) return;
     if (deferred) {
-      await deferred.prompt();
-      // The event can only be used once, whatever the user chose.
-      setDeferred(null);
+      // Paint the pressed state first, then call prompt() — which must
+      // still run inside this tap, so it is not deferred any further.
+      setPending(true);
+      try {
+        await deferred.prompt();
+      } catch {
+        // prompt() rejects if the event was already used; nothing to do.
+      } finally {
+        // The event can only be used once, whatever the user chose.
+        setDeferred(null);
+        setPending(false);
+      }
       return;
     }
     setOpen((value) => !value);
@@ -150,7 +164,11 @@ export function InstallPrompt({
         onClick={onClick}
         aria-expanded={deferred ? undefined : open}
         aria-haspopup={deferred ? undefined : "dialog"}
-        className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/10 px-3 py-1.5 text-xs font-semibold text-brand-green transition hover:bg-brand-green/20"
+        aria-busy={pending || undefined}
+        disabled={pending}
+        // touch-manipulation removes the tap-delay heuristics; the
+        // active state gives instant feedback before the browser reacts.
+        className="inline-flex touch-manipulation items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/10 px-3 py-1.5 text-xs font-semibold text-brand-green transition-colors hover:bg-brand-green/20 active:scale-95 active:bg-brand-green/30 disabled:opacity-70"
       >
         <svg viewBox="0 0 16 16" width={14} height={14} fill="none" aria-hidden="true">
           <path
@@ -161,7 +179,7 @@ export function InstallPrompt({
             strokeLinejoin="round"
           />
         </svg>
-        Install app
+        {pending ? "Opening…" : "Install app"}
       </button>
 
       {open && iosMode ? (
