@@ -103,6 +103,7 @@ export default function SocietiesPage() {
           <TableHead>
             <TableRow>
               <TableHeaderCell>Name</TableHeaderCell>
+              <TableHeaderCell>Code</TableHeaderCell>
               <TableHeaderCell>Society ID</TableHeaderCell>
               <TableHeaderCell className="text-right">Actions</TableHeaderCell>
             </TableRow>
@@ -111,6 +112,9 @@ export default function SocietiesPage() {
             {items.map((society) => (
               <TableRow key={society.id}>
                 <TableCell className="font-medium">{society.name}</TableCell>
+                <TableCell className="font-mono text-xs font-bold tracking-wider">
+                  {society.code || <span className="font-normal text-brand-ink/40">—</span>}
+                </TableCell>
                 <TableCell className="font-mono text-xs text-brand-ink/50">
                   {society.id}
                 </TableCell>

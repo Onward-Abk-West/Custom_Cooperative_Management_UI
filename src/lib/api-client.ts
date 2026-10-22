@@ -143,10 +143,10 @@ export interface ApiFetchOptions extends RequestInit {
  * Fetch wrapper for calls to the backend API, with auth-token
  * attachment and one automatic refresh-and-retry on a 401.
  */
-export async function apiFetch<T = unknown>(
+async function fetchWithAuth(
   path: string,
   options: ApiFetchOptions = {}
-): Promise<T> {
+): Promise<Response> {
   const { skipAuthRetry, headers, ...rest } = options;
 
   const doFetch = async () => {
@@ -159,8 +159,8 @@ export async function apiFetch<T = unknown>(
       !finalHeaders.has("Content-Type") &&
       !(rest.body instanceof FormData)
     ) {
-      // A FormData body (the DGT import upload — see
-      // api/dgt-import.ts) must NOT get this header: the browser sets
+      // A FormData body (the member import upload — see
+      // api/member-import.ts) must NOT get this header: the browser sets
       // its own "multipart/form-data; boundary=..." when the fetch
       // body is a FormData instance, and overriding it here (even to
       // the same string, since we can't supply the boundary) breaks
@@ -213,6 +213,14 @@ export async function apiFetch<T = unknown>(
     }
   }
 
+  return res;
+}
+
+export async function apiFetch<T = unknown>(
+  path: string,
+  options: ApiFetchOptions = {}
+): Promise<T> {
+  const res = await fetchWithAuth(path, options);
   const body = await parseBody(res);
 
   if (!res.ok) {
@@ -227,6 +235,52 @@ export async function apiFetch<T = unknown>(
 
 export function apiGet<T = unknown>(path: string, options?: ApiFetchOptions) {
   return apiFetch<T>(path, { ...options, method: "GET" });
+}
+
+export interface DownloadedFile {
+  blob: Blob;
+  /** From Content-Disposition when the API exposes it to the browser
+   * (CORS Access-Control-Expose-Headers); null otherwise. */
+  fileName: string | null;
+}
+
+function fileNameFromDisposition(header: string | null): string | null {
+  if (!header) return null;
+  const encoded = /filename\*=(?:UTF-8'')?([^;]+)/i.exec(header);
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded[1].trim().replace(/^"|"$/g, ""));
+    } catch {
+      /* fall through to the plain form */
+    }
+  }
+  const plain = /filename="?([^";]+)"?/i.exec(header);
+  return plain ? plain[1].trim() : null;
+}
+
+/**
+ * GET a binary file (e.g. an .xlsx report) with the same auth and
+ * refresh-and-retry handling as apiFetch. Resolves null on 204 No
+ * Content ("there is nothing to download"); throws ApiError for any
+ * other non-2xx response, with the JSON error envelope as `err.body`.
+ */
+export async function apiDownload(
+  path: string,
+  options?: ApiFetchOptions
+): Promise<DownloadedFile | null> {
+  const res = await fetchWithAuth(path, { ...options, method: "GET" });
+  if (res.status === 204) return null;
+  if (!res.ok) {
+    const body = await parseBody(res);
+    const message = hasStringMessage(body)
+      ? body.message
+      : res.statusText || "Request failed";
+    throw new ApiError(res.status, message, body);
+  }
+  return {
+    blob: await res.blob(),
+    fileName: fileNameFromDisposition(res.headers.get("Content-Disposition")),
+  };
 }
 
 export function apiPost<T = unknown>(

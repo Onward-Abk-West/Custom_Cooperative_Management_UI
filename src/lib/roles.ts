@@ -115,12 +115,14 @@ export const NAV_ITEMS: NavItem[] = [
   // anywhere in the UI anymore.
   {
     label: "Import",
-    href: "/dgt-import",
-    // DeveloperSuperadminDgtImportsController's [Authorize(Roles =
+    href: "/import",
+    // DeveloperSuperadminMemberImportsController's [Authorize(Roles =
     // "Developer Superadmin")] is exact — not Onward Superadmin too,
     // unlike most other developer_superadmin/onward_superadmin pairs in
-    // this list. One-time-per-society legacy-data migration tool: see
-    // (app)/dgt-import/page.tsx.
+    // this list. A one-time onboarding step per new society (assign the
+    // society code, then optionally load the existing member roster and
+    // opening balances); after that, members and records are entered by
+    // hand. See (app)/import/page.tsx.
     roles: ["developer_superadmin"],
   },
   {

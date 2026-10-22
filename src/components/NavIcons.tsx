@@ -94,7 +94,7 @@ function AssignRolesIcon(props: IconProps) {
   );
 }
 
-function DgtImportIcon(props: IconProps) {
+function ImportIcon(props: IconProps) {
   return (
     <Icon {...props}>
       <path d="M12 3.5v11M8 10.5l4 4 4-4" />
@@ -139,7 +139,7 @@ export const NAV_ICONS: Record<string, (props: IconProps) => React.JSX.Element> 
   "/pin-resets": PinResetIcon,
   "/societies": SocietiesIcon,
   "/assign-roles": AssignRolesIcon,
-  "/dgt-import": DgtImportIcon,
+  "/import": ImportIcon,
   "/audit-log": AuditIcon,
   "/settings": SettingsNavIcon,
 };

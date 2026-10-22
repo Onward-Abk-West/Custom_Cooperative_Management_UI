@@ -88,7 +88,27 @@ export default function SocietyDetailPage({
           {society.name}
         </h1>
         <p className="mt-1 font-mono text-xs text-brand-ink/50">{society.id}</p>
+        <p className="mt-2 text-sm text-brand-ink/70">
+          Society code:{" "}
+          {society.code ? (
+            <span className="rounded-full border border-brand-line bg-brand-line/25 px-3 py-1 font-mono text-xs font-bold tracking-wider text-heading">
+              {society.code}
+            </span>
+          ) : (
+            <span className="text-brand-ink/50">not assigned yet</span>
+          )}
+        </p>
       </div>
+
+      {canCreateMembers && !society.code && (
+        <div className="rounded-2xl border border-brand-gold/40 bg-brand-gold/10 p-5 text-sm text-brand-ink">
+          This society has no code yet, so members cannot be imported into it.{" "}
+          <Link href="/import" className="font-semibold text-brand-gold-dark hover:underline">
+            Set it up on the Import page
+          </Link>
+          {" "}(select this society in the sidebar switcher first).
+        </div>
+      )}
 
       {canCreateMembers && <CreateMemberCard societyId={societyId} />}
 
