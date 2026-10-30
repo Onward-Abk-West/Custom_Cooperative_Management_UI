@@ -17,7 +17,6 @@ import {
 import { readSessionInfo } from "@/lib/session";
 import { useSociety } from "@/lib/society-context";
 import { isSuperadmin, type Role } from "@/lib/roles";
-import { saveMonthlyFinancialImportSchedule } from "@/lib/api/monthly-financial-schedule";
 import { useMonthlyImportSchedule } from "@/lib/use-monthly-import-schedule";
 
 function saveDownload(blob: Blob, name: string) {
@@ -64,8 +63,7 @@ export default function MonthlyImportPage() {
   const [ownSocietyId, setOwnSocietyId] = useState("");
   const { societyId: selectedSocietyId } = useSociety();
   const societyId = isSuperadmin(role ?? "member") ? selectedSocietyId : ownSocietyId;
-  const canConfigureSchedule = role === "supervisor" || (role !== null && isSuperadmin(role));
-  const { schedule, refresh: refreshSchedule } = useMonthlyImportSchedule(societyId, !!role && (role === "admin" || canConfigureSchedule));
+  const { schedule } = useMonthlyImportSchedule(societyId, !!role && (role === "admin" || isSuperadmin(role)));
   const [file, setFile] = useState<File | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -76,9 +74,6 @@ export default function MonthlyImportPage() {
   const [busy, setBusy] = useState<"template" | "preview" | "import" | "period" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [windowStartDay, setWindowStartDay] = useState("1");
-  const [windowEndDay, setWindowEndDay] = useState("7");
-  const [repeatMonthly, setRepeatMonthly] = useState(true);
 
   useEffect(() => {
     const info = readSessionInfo();
@@ -91,34 +86,11 @@ export default function MonthlyImportPage() {
   }, [societyId]);
 
   useEffect(() => {
-    if (!schedule) return;
-    if (schedule.windowStartDay) setWindowStartDay(String(schedule.windowStartDay));
-    if (schedule.windowEndDay) setWindowEndDay(String(schedule.windowEndDay));
-    setRepeatMonthly(schedule.repeatMonthly);
-  }, [schedule]);
-
-  useEffect(() => {
     const nextDue = schedule?.duePeriods[0];
     if (!nextDue) return;
     if (!startDate) setStartDate(nextDue.startDate);
     if (!endDate) setEndDate(nextDue.endDate);
   }, [schedule, startDate, endDate]);
-
-  async function saveSchedule(event: React.FormEvent) {
-    event.preventDefault(); setError(null); setNotice(null);
-    const start = Number(windowStartDay); const end = Number(windowEndDay);
-    if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end > 31 || start > end) {
-      setError("Choose a valid submission window from day 1 through day 31."); return;
-    }
-    setBusy("period");
-    try {
-      const response = await saveMonthlyFinancialImportSchedule(societyId, start, end, repeatMonthly);
-      if (!response.success) throw new Error(response.message || "Could not save the schedule.");
-      await refreshSchedule();
-      setNotice("Monthly import schedule saved.");
-    } catch (err) { setError(messageFor(err, "Could not save the schedule.")); }
-    finally { setBusy(null); }
-  }
 
   async function downloadTemplate() {
     if (!societyId) return;
@@ -184,7 +156,7 @@ export default function MonthlyImportPage() {
   }
 
   if (!role) return <p className="text-sm text-brand-ink/60">Loading…</p>;
-  if (!isSuperadmin(role) && role !== "admin" && role !== "supervisor") {
+  if (!isSuperadmin(role) && role !== "admin") {
     return <p className="text-sm text-brand-ink/60">Monthly financial imports are not available for your role.</p>;
   }
   if (!societyId) {
@@ -212,20 +184,7 @@ export default function MonthlyImportPage() {
         </Button>
       </section>
 
-      {canConfigureSchedule && <form onSubmit={saveSchedule} className="max-w-3xl rounded-2xl border border-brand-line bg-surface-card p-5">
-        <h2 className="font-heading text-lg font-bold text-heading">Monthly upload schedule</h2>
-        <p className="mt-1 text-sm text-brand-ink/60">Choose the days when the previous month&apos;s workbook should be submitted. The due badge appears when this window opens.</p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <Input id="schedule-start" label="Window opens on day" type="number" min="1" max="31" value={windowStartDay} onChange={(event) => setWindowStartDay(event.target.value)} required />
-          <Input id="schedule-end" label="Window ends on day" type="number" min="1" max="31" value={windowEndDay} onChange={(event) => setWindowEndDay(event.target.value)} required />
-        </div>
-        <label className="mt-4 flex items-start gap-3 text-sm text-brand-ink"><input type="checkbox" checked={repeatMonthly} onChange={(event) => setRepeatMonthly(event.target.checked)} className="mt-1 accent-brand-green" /><span><span className="font-semibold text-heading">Repeat for subsequent months</span><span className="block text-xs text-brand-ink/60">When off, this schedule applies to the next reporting month only.</span></span></label>
-        <Button type="submit" className="mt-4" disabled={busy !== null}>{busy === "period" ? "Saving…" : "Save schedule"}</Button>
-      </form>}
-
-      {role === "supervisor" && <p className="max-w-3xl rounded-xl bg-brand-line/20 p-4 text-sm text-brand-ink/70">You can configure this society&apos;s monthly upload schedule here. An Admin or superadmin can upload and confirm the workbook.</p>}
-
-      {role !== "supervisor" && <form onSubmit={handlePreview} className="max-w-3xl rounded-2xl border border-brand-line bg-surface-card p-5">
+      <form onSubmit={handlePreview} className="max-w-3xl rounded-2xl border border-brand-line bg-surface-card p-5">
         <h2 className="font-heading text-lg font-bold text-heading">Validate a monthly workbook</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <Input id="monthly-start" label="Period start date" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} required disabled={periodReserved} />
@@ -237,12 +196,12 @@ export default function MonthlyImportPage() {
           <p className="mt-1 text-xs text-brand-ink/60">Required columns: Membership Number, Category, Amount, Transaction Date. Reference Number and Payment Method are optional.</p>
         </div>
         <Button type="submit" className="mt-4" disabled={busy !== null || !file || periodReserved}>{busy === "preview" ? "Validating…" : periodReserved ? "Period reserved" : "Validate workbook"}</Button>
-      </form>}
+      </form>
 
       {notice && <p role="status" className="max-w-3xl rounded-xl bg-brand-green/10 p-3 text-sm font-medium text-brand-green">{notice}</p>}
       {error && <p role="alert" className="max-w-3xl rounded-xl bg-status-bad/10 p-3 text-sm font-semibold text-status-bad">{error}</p>}
 
-      {role !== "supervisor" && preview && <section aria-live="polite" className="max-w-5xl rounded-2xl border border-brand-line bg-surface-card p-5">
+      {preview && <section aria-live="polite" className="max-w-5xl rounded-2xl border border-brand-line bg-surface-card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="font-heading text-lg font-bold text-heading">Workbook review</h2>
