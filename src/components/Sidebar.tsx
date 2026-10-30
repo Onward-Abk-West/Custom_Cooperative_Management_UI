@@ -13,6 +13,7 @@ import { CooperativeMark } from "@/components/illustrations/CooperativeMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { navIconFor } from "@/components/NavIcons";
 import { usePendingPinResetCount } from "@/lib/use-pending-pin-resets";
+import { useMonthlyImportSchedule } from "@/lib/use-monthly-import-schedule";
 
 const PIN_RESETS_HREF = "/pin-resets";
 
@@ -167,6 +168,8 @@ export function Sidebar({
   // allows, so no call is made, and no 403 raised, for anyone else).
   const showsPinResets = items.some((item) => item.href === PIN_RESETS_HREF);
   const { count: pinResetCount } = usePendingPinResetCount(role, societyId, showsPinResets);
+  const showsFinancialRecords = role === "admin" && items.some((item) => item.href === "/financial-records");
+  const { duePeriods: monthlyImportDuePeriods } = useMonthlyImportSchedule(societyId, showsFinancialRecords);
 
   async function handleLogout() {
     if (loggingOut) return;
@@ -311,7 +314,12 @@ export function Sidebar({
                   ? pinResetCount > 99
                     ? "99+"
                     : String(pinResetCount)
-                  : null;
+                  : item.href === "/financial-records" && monthlyImportDuePeriods.length > 0
+                    ? "Due"
+                    : null;
+              const badgeLabel = item.href === "/financial-records"
+                ? "monthly import due"
+                : `${badge} pending`;
               return (
                 <li key={item.href}>
                   <Link
@@ -320,7 +328,7 @@ export function Sidebar({
                     title={
                       collapsed
                         ? badge
-                          ? `${item.label} (${badge} pending)`
+                          ? `${item.label} (${badgeLabel})`
                           : item.label
                         : undefined
                     }
@@ -335,7 +343,7 @@ export function Sidebar({
                     {!collapsed && <span className="truncate">{item.label}</span>}
                     {badge && (
                       <span
-                        aria-label={`${badge} pending`}
+                        aria-label={badgeLabel}
                         className={`inline-flex min-w-5 items-center justify-center rounded-full bg-status-bad px-1.5 text-[11px] font-bold leading-5 text-white ${
                           collapsed ? "absolute right-1 top-1 !min-w-4 !px-1 !text-[10px] !leading-4" : "ml-auto"
                         }`}

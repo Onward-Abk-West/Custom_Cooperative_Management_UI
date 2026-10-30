@@ -333,3 +333,26 @@ select option {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
+
+.monthly-import-marquee {
+  white-space: nowrap;
+}
+
+.monthly-import-marquee__track {
+  display: flex;
+  width: max-content;
+  animation: monthly-import-marquee 24s linear infinite;
+}
+
+.monthly-import-marquee:hover .monthly-import-marquee__track {
+  animation-play-state: paused;
+}
+
+@keyframes monthly-import-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .monthly-import-marquee__track { animation: none; }
+}

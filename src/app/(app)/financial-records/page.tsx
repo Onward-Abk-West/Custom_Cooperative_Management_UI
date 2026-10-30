@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { AmountInWords } from "@/components/money/AmountInWords";
@@ -20,6 +21,7 @@ import { listSocietyMembers, type SocietyMemberSummary } from "@/lib/api/society
 import { readSessionInfo } from "@/lib/session";
 import { useSociety } from "@/lib/society-context";
 import type { Role } from "@/lib/roles";
+import { useMonthlyImportSchedule } from "@/lib/use-monthly-import-schedule";
 
 /**
  * "Financial Records" (see src/lib/roles.ts's NAV_ITEMS) — recording a
@@ -37,6 +39,7 @@ import type { Role } from "@/lib/roles";
 export default function FinancialRecordsPage() {
   const [role, setRole] = useState<Role | null>(null);
   const [ownSocietyId, setOwnSocietyId] = useState<string>("");
+  const { schedule, duePeriods } = useMonthlyImportSchedule(ownSocietyId, role === "admin");
 
   useEffect(() => {
     const info = readSessionInfo();
@@ -56,6 +59,38 @@ export default function FinancialRecordsPage() {
           Record a share, savings, loan or other transaction against a member&apos;s account.
         </p>
       </div>
+
+      {role === "admin" && ownSocietyId && (
+        <section className="max-w-3xl overflow-hidden rounded-xl border border-brand-line bg-surface-card">
+          {duePeriods.length > 0 && (
+            <div className="monthly-import-marquee border-b border-brand-gold/30 bg-brand-gold/15 px-3 py-2 text-xs font-semibold text-brand-ink" role="status" aria-live="polite">
+              <div className="monthly-import-marquee__track">
+                {[0, 1].map((copy) => (
+                  <span key={copy} aria-hidden={copy === 1} className="px-6">
+                    Monthly records are due for {duePeriods.map((period) => period.label).join(", ")}. Upload the transaction workbook now.
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+            <div>
+              <p className="text-sm font-semibold text-heading">Monthly transaction import</p>
+              {duePeriods.length > 0 ? (
+                <p className="mt-1 text-xs text-brand-ink/65">Due: {duePeriods.map((period) => `${period.label} (by ${period.dueDate})`).join(" · ")}</p>
+              ) : schedule?.configured ? (
+                <p className="mt-1 text-xs text-brand-ink/65">Upload is due by the {schedule.dueDayOfMonth}{schedule.dueDayOfMonth === 1 ? "st" : schedule.dueDayOfMonth === 2 ? "nd" : schedule.dueDayOfMonth === 3 ? "rd" : "th"} of each month for the previous month.</p>
+              ) : (
+                <p className="mt-1 text-xs text-brand-ink/65">The recurring import schedule has not been configured for this society yet.</p>
+              )}
+            </div>
+            <Link href="/monthly-import" className="inline-flex items-center gap-2 rounded-full bg-brand-green px-4 py-2.5 text-sm font-semibold text-brand-cream transition hover:brightness-110">
+              {duePeriods.length > 0 ? "Upload monthly records" : "Open monthly import"}
+              {duePeriods.length > 0 && <span className="rounded-full bg-status-bad px-2 py-0.5 text-xs text-white">Due</span>}
+            </Link>
+          </div>
+        </section>
+      )}
 
       {role === "admin" &&
         (ownSocietyId ? (
