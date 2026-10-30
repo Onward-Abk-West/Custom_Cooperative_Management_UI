@@ -1,126 +1,122 @@
-import { apiPost, apiPut, type ApiEnvelope } from "@/lib/api-client";
+import { apiDownload, apiFetch, apiPost, apiPut, type ApiEnvelope, type DownloadedFile } from "@/lib/api-client";
 
-/**
- * Record (and now correct) a financial transaction against a member's
- * account. Matches AbkWestCoop.Api.Controllers.
- * FinancialTransactionsControllers — only two roles can create or
- * update one: Admin (implicitly scoped to their own society, like
- * createMemberAsSupervisor in members.ts — no societyId in the path or
- * body) and Developer Superadmin (any society, societyId in the path).
- * There is deliberately no Supervisor/President/Onward-Superadmin
- * create/update endpoint, and still no list/read endpoint at all — only
- * create and update-by-id exist on the backend today, so a transaction
- * can only ever be corrected right after creating it (the id from that
- * create response), never looked up later.
- */
-
-/** Matches AbkWestCoop.Domain.Entities.FinancialCategoryValues.
- * ToStorageValue() exactly — these are the literal strings the backend
- * expects on create and returns on success, not the C# enum member
- * names. */
 export const FINANCIAL_CATEGORIES = [
-  "Shares",
-  "Savings",
-  "Normal Loan",
-  "Car Loan",
-  "Car Loan Savings",
-  "Building Loan",
-  "B. Loan Savings",
-  "Okada Loan",
-  "Okada Loan Savings",
-  "Kasolayo",
-  "Special Savings",
-  "Land Savings",
-  "Household",
-  "Education Loan",
-  "Furniture Loan",
+  "Shares", "Savings", "Normal Loan", "Car Loan", "Car Loan Savings",
+  "Building Loan", "B. Loan Savings", "Okada Loan", "Okada Loan Savings",
+  "Kasolayo", "Special Savings", "Land Savings", "Household", "Education Loan", "Furniture Loan",
 ] as const;
 export type FinancialCategory = (typeof FINANCIAL_CATEGORIES)[number];
+export type PaymentMethod = "Cash" | "Transfer";
 
-/** Matches AbkWestCoop.Contracts.FinancialTransactions.Responses.
- * CreateFinancialTransactionResponseData. `transactionDate` is a plain
- * "yyyy-MM-dd" string (DateOnly) — the same shape an
- * `<input type="date">` produces, so it round-trips with no parsing. */
 export interface CreatedFinancialTransactionData {
-  id: string;
-  societyId: string;
-  memberId: string;
-  category: string;
+  id: string; societyId: string; memberId: string; category: string; amount: number;
+  transactionDate: string; createdByUserId: string; createdAtUtc: string;
+  version: number; referenceNumber: string | null; paymentMethod: PaymentMethod | null;
+}
+export interface UpdatedFinancialTransactionData extends CreatedFinancialTransactionData {}
+
+export interface MonthlyImportPreviewItem {
+  rowNumber: number;
+  /** ASP.NET serializes this enum as its numeric value by default. */
+  kind: 0 | 1 | 2 | 3 | 4 | "New" | "Update" | "Unchanged" | "PotentialDuplicate" | "Invalid";
+  membershipNumber: string;
+  referenceNumber: string | null;
+  category: string | null;
   amount: number;
   transactionDate: string;
-  createdByUserId: string;
-  createdAtUtc: string;
+  paymentMethod: PaymentMethod | null;
+  warnings: string[];
+}
+export interface MonthlyImportPreviewData {
+  success: boolean; code: string; previewId: string | null; periodId: string | null;
+  confirmationToken: string | null; expiresAtUtc: string | null; items: MonthlyImportPreviewItem[];
+}
+export interface MonthlyImportExecutionData {
+  success: boolean; code: string; created: number; updated: number; skipped: number;
+}
+
+function monthlyImportPath(societyId: string) {
+  return `/api/v1/superadmin/societies/${societyId}/monthly-financial-imports`;
+}
+
+export function downloadMonthlyFinancialTemplate(societyId: string): Promise<DownloadedFile | null> {
+  return apiDownload(`${monthlyImportPath(societyId)}/template`);
+}
+
+export function previewMonthlyFinancialImport(societyId: string, file: File, startDate: string, endDate: string) {
+  const body = new FormData();
+  body.set("file", file);
+  body.set("startDate", startDate);
+  body.set("endDate", endDate);
+  return apiFetch<MonthlyImportPreviewData>(`${monthlyImportPath(societyId)}/preview`, {
+    method: "POST", body,
+  });
+}
+
+export function confirmMonthlyFinancialImport(societyId: string, previewId: string, confirmationToken: string) {
+  return apiPost<{ success: boolean; code: string }>(`${monthlyImportPath(societyId)}/${previewId}/confirm`, {
+    confirmationToken, acceptPotentialDuplicates: false,
+  });
+}
+
+export function executeMonthlyFinancialImport(societyId: string, previewId: string, confirmationToken: string) {
+  return apiPost<MonthlyImportExecutionData>(`${monthlyImportPath(societyId)}/${previewId}/import`, {
+    confirmationToken,
+  });
+}
+
+export function completeMonthlyFinancialPeriod(societyId: string, periodId: string) {
+  return apiPost<{ success: boolean; code: string }>(`${monthlyImportPath(societyId)}/periods/${periodId}/complete`);
+}
+
+export function reopenMonthlyFinancialPeriod(societyId: string, periodId: string, reason: string) {
+  return apiPost<{ success: boolean; code: string }>(`${monthlyImportPath(societyId)}/periods/${periodId}/reopen`, { reason });
 }
 
 /** POST /api/v1/admin/financial-transactions — Admin, own society implied. */
 export function createFinancialTransactionAsAdmin(
-  memberId: string,
-  category: FinancialCategory,
-  amount: number,
-  transactionDate: string
+  memberId: string, category: FinancialCategory, amount: number, transactionDate: string,
+  referenceNumber: string, paymentMethod: PaymentMethod | ""
 ) {
-  return apiPost<ApiEnvelope<CreatedFinancialTransactionData>>(
-    "/api/v1/admin/financial-transactions",
-    { MemberId: memberId, Category: category, Amount: amount, TransactionDate: transactionDate }
-  );
+  return apiPost<ApiEnvelope<CreatedFinancialTransactionData>>("/api/v1/admin/financial-transactions", {
+    MemberId: memberId, Category: category, Amount: amount, TransactionDate: transactionDate,
+    ReferenceNumber: referenceNumber || null, PaymentMethod: paymentMethod || null,
+  });
 }
 
 /** POST /api/v1/developer-superadmin/societies/{societyId}/financial-transactions. */
 export function createFinancialTransactionForSociety(
-  societyId: string,
-  memberId: string,
-  category: FinancialCategory,
-  amount: number,
-  transactionDate: string
+  societyId: string, memberId: string, category: FinancialCategory, amount: number,
+  transactionDate: string, referenceNumber: string, paymentMethod: PaymentMethod | ""
 ) {
   return apiPost<ApiEnvelope<CreatedFinancialTransactionData>>(
-    `/api/v1/developer-superadmin/societies/${societyId}/financial-transactions`,
-    { MemberId: memberId, Category: category, Amount: amount, TransactionDate: transactionDate }
+    `/api/v1/developer-superadmin/societies/${societyId}/financial-transactions`, {
+      MemberId: memberId, Category: category, Amount: amount, TransactionDate: transactionDate,
+      ReferenceNumber: referenceNumber || null, PaymentMethod: paymentMethod || null,
+    }
   );
 }
 
-/** Matches AbkWestCoop.Contracts.FinancialTransactions.Responses.
- * UpdateFinancialTransactionResponseData. No `memberId` on the request —
- * the backend's UpdateFinancialTransactionService only lets you correct
- * category/amount/date, never reassign which member a transaction
- * belongs to. A submit that exactly matches the existing values is not
- * an error — it comes back `success: true` with code
- * FINANCIAL_TRANSACTION_UNCHANGED instead of FINANCIAL_TRANSACTION_UPDATED. */
-export interface UpdatedFinancialTransactionData {
-  id: string;
-  societyId: string;
-  memberId: string;
-  category: string;
-  amount: number;
-  transactionDate: string;
-  createdByUserId: string;
-  createdAtUtc: string;
-}
-
-/** PUT /api/v1/admin/financial-transactions/{transactionId} — Admin,
- * own society implied. */
 export function updateFinancialTransactionAsAdmin(
-  transactionId: string,
-  category: FinancialCategory,
-  amount: number,
-  transactionDate: string
+  transactionId: string, category: FinancialCategory, amount: number, transactionDate: string,
+  version: number, referenceNumber: string, paymentMethod: PaymentMethod | ""
 ) {
   return apiPut<ApiEnvelope<UpdatedFinancialTransactionData>>(
-    `/api/v1/admin/financial-transactions/${transactionId}`,
-    { Category: category, Amount: amount, TransactionDate: transactionDate }
+    `/api/v1/admin/financial-transactions/${transactionId}`, {
+      Category: category, Amount: amount, TransactionDate: transactionDate, Version: version,
+      ReferenceNumber: referenceNumber || null, PaymentMethod: paymentMethod || null,
+    }
   );
 }
 
-/** PUT /api/v1/developer-superadmin/societies/{societyId}/financial-transactions/{transactionId}. */
 export function updateFinancialTransactionForSociety(
-  societyId: string,
-  transactionId: string,
-  category: FinancialCategory,
-  amount: number,
-  transactionDate: string
+  societyId: string, transactionId: string, category: FinancialCategory, amount: number,
+  transactionDate: string, version: number, referenceNumber: string, paymentMethod: PaymentMethod | ""
 ) {
   return apiPut<ApiEnvelope<UpdatedFinancialTransactionData>>(
-    `/api/v1/developer-superadmin/societies/${societyId}/financial-transactions/${transactionId}`,
-    { Category: category, Amount: amount, TransactionDate: transactionDate }
+    `/api/v1/developer-superadmin/societies/${societyId}/financial-transactions/${transactionId}`, {
+      Category: category, Amount: amount, TransactionDate: transactionDate, Version: version,
+      ReferenceNumber: referenceNumber || null, PaymentMethod: paymentMethod || null,
+    }
   );
 }
