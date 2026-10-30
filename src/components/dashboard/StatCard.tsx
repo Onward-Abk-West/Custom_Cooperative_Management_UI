@@ -104,8 +104,8 @@ export function StatCard({
     <div
       className="flex min-w-0 flex-col gap-3 rounded-2xl border p-5"
       style={tone ? {
-        borderColor: `color-mix(in srgb, var(--stat-${tone}) 35%, var(--brand-line))`,
-        backgroundColor: `color-mix(in srgb, var(--stat-${tone}) 8%, var(--surface-card))`,
+        borderColor: `color-mix(in srgb, var(--stat-${tone}) 72%, transparent)`,
+        backgroundColor: `color-mix(in srgb, var(--stat-${tone}) 78%, var(--surface-card))`,
       } : undefined}
     >
       {/* Label gets its own full-width row so a long one ("Loans
@@ -115,14 +115,14 @@ export function StatCard({
           share the last row. */}
       <p
         title={label}
-        className="truncate text-xs font-bold uppercase tracking-wide text-label"
+        className={`truncate text-xs font-bold uppercase tracking-wide ${tone ? "text-white/90" : "text-label"}`}
       >
         {label}
       </p>
-      {note ? <p className="-mt-2 text-xs text-brand-ink/55">{note}</p> : null}
+      {note ? <p className={`-mt-2 text-xs ${tone ? "text-white/75" : "text-brand-ink/55"}`}>{note}</p> : null}
       <p
         className="min-w-0 text-2xl font-bold tabular-nums [overflow-wrap:anywhere]"
-        style={{ color: valueColor }}
+        style={{ color: tone ? "#fff" : valueColor }}
       >
         {money !== undefined ? <Money value={money} label={label} /> : value}
       </p>

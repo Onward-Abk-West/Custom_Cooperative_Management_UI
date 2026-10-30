@@ -55,6 +55,7 @@ export interface NavItem {
   href: string;
   /** "all" renders for every role; otherwise an explicit allow-list. */
   roles: Role[] | "all";
+  children?: NavItem[];
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -64,12 +65,6 @@ export const NAV_ITEMS: NavItem[] = [
   // then Profile and Settings.
   { label: "Profile", href: "/records", roles: ["member"] },
   { label: "Settings", href: "/settings", roles: ["member"] },
-  {
-    label: "Members",
-    href: "/members",
-    // GET /api/v1/members/{id}'s full reader list, per MemberProfilesController.
-    roles: ["admin", "supervisor", "president", "developer_superadmin", "onward_superadmin"],
-  },
   {
     label: "Financial Records",
     href: "/financial-records",
@@ -81,18 +76,22 @@ export const NAV_ITEMS: NavItem[] = [
     // nav item — and (app)/financial-records/page.tsx — stays limited
     // to a create form for just these two roles.
     roles: ["admin", "developer_superadmin"],
+    children: [
+      { label: "Record Entry", href: "/financial-records", roles: ["admin", "developer_superadmin"] },
+      // Transaction browsing is intentionally withheld until a society-scoped,
+      // server-paginated GET endpoint exists. The API currently exposes writes,
+      // summaries, and exports only.
+    ],
   },
   {
-    label: "Monthly Import",
+    label: "Monthly Schedule",
     href: "/monthly-import",
     // Workbook validation/import is available to Admin and superadmins.
-    roles: ["admin", "developer_superadmin", "onward_superadmin"],
-  },
-  {
-    label: "Monthly Upload Schedule",
-    href: "/monthly-import/schedule",
-    // Supervisors configure their society; superadmins can configure a selected society.
-    roles: ["supervisor", "developer_superadmin", "onward_superadmin"],
+    roles: ["admin", "developer_superadmin", "onward_superadmin", "supervisor"],
+    children: [
+      { label: "Validate workbook", href: "/monthly-import", roles: ["admin", "developer_superadmin", "onward_superadmin"] },
+      { label: "Schedule", href: "/monthly-import/schedule", roles: ["supervisor", "developer_superadmin", "onward_superadmin"] },
+    ],
   },
   {
     label: "PIN Reset Requests",
@@ -126,8 +125,8 @@ export const NAV_ITEMS: NavItem[] = [
   // old list-all-societies table (/societies) isn't linked from
   // anywhere in the UI anymore.
   {
-    label: "Import",
-    href: "/import",
+    label: "Members",
+    href: "/members",
     // DeveloperSuperadminMemberImportsController's [Authorize(Roles =
     // "Developer Superadmin")] is exact — not Onward Superadmin too,
     // unlike most other developer_superadmin/onward_superadmin pairs in
@@ -135,7 +134,11 @@ export const NAV_ITEMS: NavItem[] = [
     // society code, then optionally load the existing member roster and
     // opening balances); after that, members and records are entered by
     // hand. See (app)/import/page.tsx.
-    roles: ["developer_superadmin"],
+    roles: ["developer_superadmin", "onward_superadmin", "supervisor", "president", "admin"],
+    children: [
+      { label: "All Members", href: "/members", roles: ["developer_superadmin", "onward_superadmin", "supervisor", "president", "admin"] },
+      { label: "Member Import", href: "/import", roles: ["developer_superadmin"] },
+    ],
   },
   {
     label: "Audit Log",
@@ -151,7 +154,9 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 export function navItemsForRole(role: Role): NavItem[] {
-  return NAV_ITEMS.filter(
-    (item) => item.roles === "all" || item.roles.includes(role)
-  );
+  return NAV_ITEMS.filter((item) => item.roles === "all" || item.roles.includes(role))
+    .map((item) => ({
+      ...item,
+      children: item.children?.filter((child) => child.roles === "all" || child.roles.includes(role)),
+    }));
 }

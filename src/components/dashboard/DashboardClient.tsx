@@ -102,13 +102,8 @@ export function DashboardClient() {
 
   const totals = useMemo(() => {
     const categories = summary?.categoryTotals ?? [];
-    return {
-      savings: categories.filter((item) => SAVINGS_CATEGORIES.has(item.category))
-        .reduce((total, item) => total + item.totalAmount, 0),
-      loanCategoryValue: categories.filter((item) => !SAVINGS_CATEGORIES.has(item.category) &&
-        !["Shares", "Savings"].includes(item.category))
-        .reduce((total, item) => total + item.totalAmount, 0),
-    };
+    return categories.filter((item) => SAVINGS_CATEGORIES.has(item.category))
+      .reduce((total, item) => total + item.totalAmount, 0);
   }, [summary]);
 
   const canHandlePinResets = role === "supervisor" || role === "president" ||
@@ -142,10 +137,10 @@ export function DashboardClient() {
     {error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-status-bad/30 bg-status-bad/5 p-4 text-sm text-status-bad"><p>{error}</p><button type="button" onClick={() => setReload((value) => value + 1)} className="font-semibold underline">Try again</button></div>}
 
     <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <StatCard label="Total savings" money={totals.savings} note="Savings categories recorded to date" tone="green" accent="var(--stat-green)" valueColor="var(--stat-green)" />
-      <StatCard label="Loans outstanding" value="Not tracked" note="The backend has no loan balance or repayment status" tone="red" accent="var(--stat-red)" valueColor="var(--stat-red)" />
-      <StatCard label="Total members" value={memberCount === null ? (loading ? "Loading…" : "—") : memberCount.toLocaleString()} note="Users with the Member role in this society" tone="blue" accent="var(--stat-blue)" valueColor="var(--stat-blue)" />
-      <StatCard label="Repayment rate" value="Not tracked" note="Transactions are not classified as repayments" tone="gold" accent="var(--stat-gold)" valueColor="var(--stat-gold)" />
+      <StatCard label="Total savings" money={summary ? totals : undefined} value={summary ? undefined : loading ? "Loading…" : "N/A"} note="Savings categories recorded to date" tone="green" accent="var(--stat-green)" valueColor="var(--stat-green)" />
+      <StatCard label="Loans outstanding" value="N/A" note="Loan balance data is not available from the backend" tone="red" accent="var(--stat-red)" valueColor="var(--stat-red)" />
+      <StatCard label="Total members" value={memberCount === null ? (loading ? "Loading…" : "N/A") : memberCount.toLocaleString()} note="Users with the Member role in this society" tone="blue" accent="var(--stat-blue)" valueColor="var(--stat-blue)" />
+      <StatCard label="Repayment rate" value="N/A" note="Repayment data is not available from the backend" tone="gold" accent="var(--stat-gold)" valueColor="var(--stat-gold)" />
     </div>
 
     {summary && <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
