@@ -376,7 +376,7 @@ export function Sidebar({
                   {hasChildren && expanded && !collapsed && <ul className="ml-5 mt-1 flex flex-col gap-1 border-l border-brand-line pl-3">
                     {item.children!.map((child) => {
                       const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`);
-                      const ChildIcon = navIconFor(child.href);
+                      const ChildIcon = navIconFor(child.iconHref ?? child.href);
                       return <li key={child.href}><Link href={child.href} onClick={onCloseMobile} aria-current={childActive ? "page" : undefined} className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium transition ${childActive ? "bg-brand-green/15 text-brand-green-deep" : "text-brand-ink/65 hover:bg-brand-line/30 hover:text-brand-ink"}`}><ChildIcon className="h-4 w-4 shrink-0"/><span className="truncate">{child.label}</span></Link></li>;
                     })}
                   </ul>}

@@ -166,6 +166,7 @@ export const NAV_ICONS: Record<string, (props: IconProps) => React.JSX.Element> 
   "/assign-roles": AssignRolesIcon,
   "/import": ImportIcon,
   "/monthly-import": ImportListIcon,
+  "/monthly-transaction-import": TransactionsIcon,
   "/monthly-import/schedule": ScheduleIcon,
   "/loans": LoansIcon,
   "/reports": ReportsIcon,

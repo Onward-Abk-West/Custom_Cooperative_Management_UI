@@ -60,6 +60,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("identify");
   const [identifier, setIdentifier] = useState("");
+  const [verifiedIdentifier, setVerifiedIdentifier] = useState<string | null>(null);
   const [pin, setPin] = useState("");
   const [credential, setCredential] = useState("");
   const [pinSetupToken, setPinSetupToken] = useState<string | null>(null);
@@ -70,6 +71,7 @@ export default function LoginPage() {
 
   function resetToIdentify() {
     setStep("identify");
+    setVerifiedIdentifier(null);
     setPin("");
     setCredential("");
     setPinSetupToken(null);
@@ -93,9 +95,13 @@ export default function LoginPage() {
     try {
       const response = await identifyAccount(identifier.trim());
       if (!response.success || !response.data) {
+        setVerifiedIdentifier(null);
         setError(response.message || "We couldn't find that account.");
         return;
       }
+      // Keep the exact identifier that the API has confirmed exists. The
+      // forgot PIN action is only available after this successful response.
+      setVerifiedIdentifier(identifier.trim());
       switch (response.data.nextStep) {
         case LOGIN_STEP.firstTime:
           setStep("firstTimeCredential");
@@ -311,12 +317,12 @@ export default function LoginPage() {
   }
 
   async function handleForgotPin() {
-    if (!identifier.trim() || submitting) return;
+    if (step !== "pin" || !verifiedIdentifier || submitting) return;
     const confirmed = await confirmAction("Request a PIN reset?", "Your request will be sent to your society administrator for review.", "Submit request");
     if (!confirmed) return;
     setSubmitting(true); setError(null);
     try {
-      const response = await requestPublicPinReset(identifier.trim());
+      const response = await requestPublicPinReset(verifiedIdentifier);
       if (!response.success) throw new Error(response.message || "The request could not be submitted.");
       await showSuccess("PIN reset request submitted", "Please contact your society administrator to complete your PIN reset. Once approved, you will need to set a new PIN before accessing your account.");
     } catch (err) {
@@ -632,7 +638,6 @@ export default function LoginPage() {
           {submitting ? "Checking…" : "Continue"}
         </Button>
       </form>
-      {identifier.trim() && <button type="button" onClick={handleForgotPin} disabled={submitting} className="mt-4 w-full text-center text-sm font-semibold text-brand-green-deep hover:underline disabled:opacity-50">Forgotten PIN?</button>}
     </AuthCard>
   );
 }
