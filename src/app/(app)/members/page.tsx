@@ -23,8 +23,9 @@ import { listSocietyMembers, type SocietyMemberSummary } from "@/lib/api/society
 import { readSessionInfo } from "@/lib/session";
 import { useSociety } from "@/lib/society-context";
 import { isSuperadmin, type Role } from "@/lib/roles";
+import { Pagination } from "@/components/ui/Pagination";
 
-const PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 25;
 
 /**
  * "Members" (see src/lib/roles.ts's NAV_ITEMS) — a real roster, now that
@@ -117,12 +118,6 @@ function MemberFilterBox({
   );
 }
 
-/** The largest page the backend allows in one request (see
- * ListSocietyMembersRequest/SocietyMembersController: pageSize must be
- * 1-100) — used while filtering so the match has as much of the
- * roster to search as a single request can hold. */
-const MAX_PAGE_SIZE = 100;
-
 function MembersRoster({
   societyId,
   filterText,
@@ -131,34 +126,27 @@ function MembersRoster({
   filterText: string;
 }) {
   const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [items, setItems] = useState<SocietyMemberSummary[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const needle = filterText.trim().toLowerCase();
-  const isFiltering = needle.length > 0;
-  // Filtering is client-side (the backend has no text-search query yet),
-  // so it trades normal pagination for the single largest page available
-  // and searches within that. Fine for a society-sized roster; see the
-  // "showing matches from" note below for the honest caveat once a
-  // society has grown past MAX_PAGE_SIZE members.
-  const effectivePageNumber = isFiltering ? 1 : pageNumber;
-  const effectivePageSize = isFiltering ? MAX_PAGE_SIZE : PAGE_SIZE;
+  const search = filterText.trim();
 
   // Jumping to a different society (via the sidebar switcher) always
   // restarts at page 1 — a stale page number from the previous society
   // would otherwise request an out-of-range page on the new one.
   useEffect(() => {
     setPageNumber(1);
-  }, [societyId]);
+  }, [societyId, search, pageSize]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    listSocietyMembers(societyId, effectivePageNumber, effectivePageSize)
+    listSocietyMembers(societyId, pageNumber, pageSize, search)
       .then((response) => {
         if (cancelled) return;
         if (!response.success || !response.data) {
@@ -183,30 +171,10 @@ function MembersRoster({
     return () => {
       cancelled = true;
     };
-  }, [societyId, effectivePageNumber, effectivePageSize]);
-
-  const visibleItems = isFiltering
-    ? items.filter(
-        (member) =>
-          member.name?.toLowerCase().includes(needle) ||
-          member.email?.toLowerCase().includes(needle) ||
-          member.phoneNumber?.toLowerCase().includes(needle)
-      )
-    : items;
+  }, [societyId, pageNumber, pageSize, search]);
 
   return (
     <div className="flex flex-col gap-4">
-      {totalCount > 0 && (
-        <p className="text-sm text-brand-ink/60">
-          {isFiltering
-            ? `${visibleItems.length} match${visibleItems.length === 1 ? "" : "es"}`
-            : `${totalCount} member${totalCount === 1 ? "" : "s"}.`}
-          {isFiltering && totalCount > MAX_PAGE_SIZE && (
-            <> — searched the first {MAX_PAGE_SIZE} of {totalCount} members.</>
-          )}
-        </p>
-      )}
-
       {error && (
         <p role="alert" className="text-sm font-semibold text-status-bad">
           {error}
@@ -217,9 +185,9 @@ function MembersRoster({
         <div className="rounded-2xl border border-brand-line bg-surface-card p-6 text-sm text-brand-ink/60">
           Loading members…
         </div>
-      ) : visibleItems.length === 0 && !error ? (
+      ) : items.length === 0 && !error ? (
         <div className="rounded-2xl border border-dashed border-brand-line bg-surface-card p-6 text-sm text-brand-ink/60">
-          {isFiltering ? "No members match that filter." : "No members yet in this society."}
+          {search ? "No members match that search." : "No members yet in this society."}
         </div>
       ) : (
         <Table>
@@ -234,7 +202,7 @@ function MembersRoster({
             </TableRow>
           </TableHead>
           <TableBody>
-            {visibleItems.map((member) => (
+            {items.map((member) => (
               <TableRow key={member.userId}>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -260,29 +228,7 @@ function MembersRoster({
         </Table>
       )}
 
-      {!isFiltering && totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-brand-ink/60">
-          <button
-            type="button"
-            disabled={pageNumber <= 1}
-            onClick={() => setPageNumber((n) => Math.max(1, n - 1))}
-            className="rounded-full border border-brand-line px-3 py-1.5 font-medium transition hover:bg-brand-line/25 disabled:opacity-40"
-          >
-            Previous
-          </button>
-          <span>
-            Page {pageNumber} of {totalPages}
-          </span>
-          <button
-            type="button"
-            disabled={pageNumber >= totalPages}
-            onClick={() => setPageNumber((n) => Math.min(totalPages, n + 1))}
-            className="rounded-full border border-brand-line px-3 py-1.5 font-medium transition hover:bg-brand-line/25 disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <Pagination pageNumber={pageNumber} pageSize={pageSize} totalCount={totalCount} totalPages={totalPages} onPageChange={setPageNumber} onPageSizeChange={(size) => { setPageSize(size); setPageNumber(1); }} />
     </div>
   );
 }

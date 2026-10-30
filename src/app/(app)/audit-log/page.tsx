@@ -19,8 +19,9 @@ import {
 import { listSocieties, type SocietySummary } from "@/lib/api/societies";
 import { readSessionInfo } from "@/lib/session";
 import { getMockSession } from "@/lib/mock-session";
+import { Pagination } from "@/components/ui/Pagination";
 
-const PAGE_SIZE = 25;
+const DEFAULT_PAGE_SIZE = 25;
 
 /** Backend ActorRole strings this log can ever contain — "Developer
  * Superadmin" is deliberately absent: every Developer Superadmin event
@@ -61,6 +62,7 @@ function DeveloperAuditLogView() {
   const [toDate, setToDate] = useState("");
 
   const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [items, setItems] = useState<AuditLogEntryData[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -90,7 +92,7 @@ function DeveloperAuditLogView() {
         toUtc: toDate ? `${toDate}T23:59:59.999Z` : undefined,
       },
       pageNumber,
-      PAGE_SIZE
+      pageSize
     )
       .then((response) => {
         if (cancelled) return;
@@ -116,7 +118,7 @@ function DeveloperAuditLogView() {
     return () => {
       cancelled = true;
     };
-  }, [societyId, fromDate, toDate, pageNumber]);
+  }, [societyId, fromDate, toDate, pageNumber, pageSize]);
 
   const selectClassName =
     "w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:bg-brand-cream focus:ring-2 focus:ring-brand-gold/30";
@@ -254,9 +256,7 @@ function DeveloperAuditLogView() {
         </Table>
       )}
 
-      {totalPages > 1 && (
-        <PaginationBar pageNumber={pageNumber} totalPages={totalPages} onChange={setPageNumber} />
-      )}
+      <Pagination pageNumber={pageNumber} pageSize={pageSize} totalCount={totalCount} totalPages={totalPages} onPageChange={setPageNumber} onPageSizeChange={(size) => { setPageSize(size); setPageNumber(1); }} />
     </div>
   );
 }
@@ -269,6 +269,7 @@ function OnwardAuditLogView() {
   const [toDate, setToDate] = useState("");
 
   const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [items, setItems] = useState<OnwardAuditLogEntryData[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -299,7 +300,7 @@ function OnwardAuditLogView() {
         toUtc: toDate ? `${toDate}T23:59:59.999Z` : undefined,
       },
       pageNumber,
-      PAGE_SIZE
+      pageSize
     )
       .then((response) => {
         if (cancelled) return;
@@ -325,7 +326,7 @@ function OnwardAuditLogView() {
     return () => {
       cancelled = true;
     };
-  }, [societyId, actorRole, fromDate, toDate, pageNumber]);
+  }, [societyId, actorRole, fromDate, toDate, pageNumber, pageSize]);
 
   const selectClassName =
     "w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:bg-brand-cream focus:ring-2 focus:ring-brand-gold/30";
@@ -482,43 +483,7 @@ function OnwardAuditLogView() {
         </Table>
       )}
 
-      {totalPages > 1 && (
-        <PaginationBar pageNumber={pageNumber} totalPages={totalPages} onChange={setPageNumber} />
-      )}
-    </div>
-  );
-}
-
-function PaginationBar({
-  pageNumber,
-  totalPages,
-  onChange,
-}: {
-  pageNumber: number;
-  totalPages: number;
-  onChange: (next: number) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between text-sm text-brand-ink/60">
-      <button
-        type="button"
-        disabled={pageNumber <= 1}
-        onClick={() => onChange(Math.max(1, pageNumber - 1))}
-        className="rounded-full border border-brand-line px-3 py-1.5 font-medium transition hover:bg-brand-line/25 disabled:opacity-40"
-      >
-        Previous
-      </button>
-      <span>
-        Page {pageNumber} of {totalPages}
-      </span>
-      <button
-        type="button"
-        disabled={pageNumber >= totalPages}
-        onClick={() => onChange(Math.min(totalPages, pageNumber + 1))}
-        className="rounded-full border border-brand-line px-3 py-1.5 font-medium transition hover:bg-brand-line/25 disabled:opacity-40"
-      >
-        Next
-      </button>
+      <Pagination pageNumber={pageNumber} pageSize={pageSize} totalCount={totalCount} totalPages={totalPages} onPageChange={setPageNumber} onPageSizeChange={(size) => { setPageSize(size); setPageNumber(1); }} />
     </div>
   );
 }

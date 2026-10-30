@@ -157,6 +157,7 @@ export function Sidebar({
   );
   const pathname = usePathname();
   const items = navItemsForRole(role);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   // The switcher below writes here, and any page (Members, in
   // particular) reads the same value back via useSociety() — see
   // src/lib/society-context.tsx. This replaces what used to be local
@@ -219,6 +220,12 @@ export function Sidebar({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [mobileOpen, onCloseMobile]);
+
+  useEffect(() => {
+    const activeParents = items.filter((item) => item.children?.some((child) =>
+      pathname === child.href || pathname.startsWith(`${child.href}/`))).map((item) => item.href);
+    setExpandedMenus((current) => [...new Set([...current, ...activeParents])]);
+  }, [pathname, role]);
 
   return (
     <>
@@ -306,8 +313,10 @@ export function Sidebar({
         <nav aria-label="Primary" className="flex-1 overflow-y-auto px-2 py-3">
           <ul className="flex flex-col gap-1">
             {items.map((item) => {
-              const active =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`) ||
+                Boolean(item.children?.some((child) => pathname === child.href || pathname.startsWith(`${child.href}/`)));
+              const hasChildren = Boolean(item.children?.length);
+              const expanded = expandedMenus.includes(item.href);
               const ItemIcon = navIconFor(item.href);
               const badge =
                 item.href === PIN_RESETS_HREF && pinResetCount && pinResetCount > 0
@@ -322,9 +331,15 @@ export function Sidebar({
                 : `${badge} pending`;
               return (
                 <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
+                  {hasChildren ? <button
+                    type="button"
+                    aria-expanded={expanded}
+                    onClick={() => {
+                      if (collapsed) setSidebarCollapsed(false);
+                      setExpandedMenus((current) => expanded
+                        ? current.filter((href) => href !== item.href)
+                        : [...current, item.href]);
+                    }}
                     title={
                       collapsed
                         ? badge
@@ -332,7 +347,6 @@ export function Sidebar({
                           : item.label
                         : undefined
                     }
-                    onClick={onCloseMobile}
                     className={`relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                       active
                         ? "bg-brand-green text-brand-cream"
@@ -341,6 +355,7 @@ export function Sidebar({
                   >
                     <ItemIcon className="h-5 w-5 shrink-0" />
                     {!collapsed && <span className="truncate">{item.label}</span>}
+                    {!collapsed && hasChildren && <span aria-hidden className={`ml-auto text-xs transition-transform ${expanded ? "rotate-180" : ""}`}>⌄</span>}
                     {badge && (
                       <span
                         aria-label={badgeLabel}
@@ -351,7 +366,20 @@ export function Sidebar({
                         {badge}
                       </span>
                     )}
-                  </Link>
+                  </button> : <Link
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    title={collapsed ? (badge ? `${item.label} (${badgeLabel})` : item.label) : undefined}
+                    onClick={onCloseMobile}
+                    className={`relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${active ? "bg-brand-green text-brand-cream" : "text-brand-ink/70 hover:bg-brand-line/30 hover:text-brand-ink"} ${collapsed ? "justify-center" : ""}`}
+                  ><ItemIcon className="h-5 w-5 shrink-0" />{!collapsed && <span className="truncate">{item.label}</span>}</Link>}
+                  {hasChildren && expanded && !collapsed && <ul className="ml-5 mt-1 flex flex-col gap-1 border-l border-brand-line pl-3">
+                    {item.children!.map((child) => {
+                      const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`);
+                      const ChildIcon = navIconFor(child.href);
+                      return <li key={child.href}><Link href={child.href} onClick={onCloseMobile} aria-current={childActive ? "page" : undefined} className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium transition ${childActive ? "bg-brand-green/15 text-brand-green-deep" : "text-brand-ink/65 hover:bg-brand-line/30 hover:text-brand-ink"}`}><ChildIcon className="h-4 w-4 shrink-0"/><span className="truncate">{child.label}</span></Link></li>;
+                    })}
+                  </ul>}
                 </li>
               );
             })}

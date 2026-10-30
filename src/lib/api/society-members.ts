@@ -32,8 +32,10 @@ export interface ListSocietyMembersData {
  * President/Admin requesting a society other than their own gets back
  * an empty page rather than a 403 — the backend scopes the query, it
  * doesn't reject it (see SocietyDataScope.ScopeUsers). */
-export function listSocietyMembers(societyId: string, pageNumber = 1, pageSize = 20) {
+export function listSocietyMembers(societyId: string, pageNumber = 1, pageSize = 20, search?: string) {
+  const params = new URLSearchParams({ pageNumber: String(pageNumber), pageSize: String(pageSize) });
+  if (search?.trim()) params.set("search", search.trim());
   return apiGet<ApiEnvelope<ListSocietyMembersData>>(
-    `/api/v1/societies/${societyId}/members?pageNumber=${pageNumber}&pageSize=${pageSize}`
+    `/api/v1/societies/${societyId}/members?${params.toString()}`
   );
 }

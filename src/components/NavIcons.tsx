@@ -131,15 +131,30 @@ function DefaultIcon(props: IconProps) {
   );
 }
 
+function ScheduleIcon(props: IconProps) {
+  return <Icon {...props}><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 10h16M8 14h3M8 17h6"/></Icon>;
+}
+
+function ImportListIcon(props: IconProps) {
+  return <Icon {...props}><path d="M12 3.5v10M8.5 10l3.5 3.5 3.5-3.5M5 16v3a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-3"/></Icon>;
+}
+
+function RequestsIcon(props: IconProps) {
+  return <Icon {...props}><path d="M6 4h12a2 2 0 0 1 2 2v14l-3.5-2-3.5 2-3.5-2L6 20V4Z"/><path d="M9 9h6M9 13h6"/></Icon>;
+}
+
 export const NAV_ICONS: Record<string, (props: IconProps) => React.JSX.Element> = {
   "/dashboard": DashboardIcon,
   "/records": RecordsIcon,
   "/members": MembersIcon,
   "/financial-records": LedgerIcon,
   "/pin-resets": PinResetIcon,
+  "/profile-requests": RequestsIcon,
   "/societies": SocietiesIcon,
   "/assign-roles": AssignRolesIcon,
   "/import": ImportIcon,
+  "/monthly-import": ImportListIcon,
+  "/monthly-import/schedule": ScheduleIcon,
   "/audit-log": AuditIcon,
   "/settings": SettingsNavIcon,
 };

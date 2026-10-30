@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
+import { Pagination } from "@/components/ui/Pagination";
 import { ApiError } from "@/lib/api-client";
 import { listSocieties, type SocietySummary } from "@/lib/api/societies";
 
@@ -21,10 +22,11 @@ import { listSocieties, type SocietySummary } from "@/lib/api/societies";
  * itself (shown inline below), since there's no client-side role gate
  * duplicating that authorization check here.
  */
-const PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 25;
 
 export default function SocietiesPage() {
   const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [items, setItems] = useState<SocietySummary[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -35,7 +37,7 @@ export default function SocietiesPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    listSocieties(pageNumber, PAGE_SIZE)
+    listSocieties(pageNumber, pageSize)
       .then((response) => {
         if (cancelled) return;
         if (!response.success || !response.data) {
@@ -60,7 +62,7 @@ export default function SocietiesPage() {
     return () => {
       cancelled = true;
     };
-  }, [pageNumber]);
+  }, [pageNumber, pageSize]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -132,29 +134,7 @@ export default function SocietiesPage() {
         </Table>
       )}
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-brand-ink/60">
-          <button
-            type="button"
-            disabled={pageNumber <= 1}
-            onClick={() => setPageNumber((n) => Math.max(1, n - 1))}
-            className="rounded-full border border-brand-line px-3 py-1.5 font-medium transition hover:bg-brand-line/25 disabled:opacity-40"
-          >
-            Previous
-          </button>
-          <span>
-            Page {pageNumber} of {totalPages}
-          </span>
-          <button
-            type="button"
-            disabled={pageNumber >= totalPages}
-            onClick={() => setPageNumber((n) => Math.min(totalPages, n + 1))}
-            className="rounded-full border border-brand-line px-3 py-1.5 font-medium transition hover:bg-brand-line/25 disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <Pagination pageNumber={pageNumber} pageSize={pageSize} totalCount={totalCount} totalPages={totalPages} onPageChange={setPageNumber} onPageSizeChange={(size) => { setPageSize(size); setPageNumber(1); }} />
     </div>
   );
 }

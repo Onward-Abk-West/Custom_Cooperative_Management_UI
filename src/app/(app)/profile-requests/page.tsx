@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
+import { Pagination } from "@/components/ui/Pagination";
 import { ApiError } from "@/lib/api-client";
 import {
   listPendingProfileUpdateRequests,
@@ -27,10 +28,11 @@ import {
  * endpoint; this queue is where that proposal is accepted or turned
  * down.
  */
-const PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 25;
 
 export default function ProfileRequestsPage() {
   const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [items, setItems] = useState<ProfileUpdateRequestData[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -43,7 +45,7 @@ export default function ProfileRequestsPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    listPendingProfileUpdateRequests(pageNumber, PAGE_SIZE)
+    listPendingProfileUpdateRequests(pageNumber, pageSize)
       .then((response) => {
         if (cancelled) return;
         if (!response.success || !response.data) {
@@ -68,7 +70,7 @@ export default function ProfileRequestsPage() {
     return () => {
       cancelled = true;
     };
-  }, [pageNumber]);
+  }, [pageNumber, pageSize]);
 
   async function handleReview(request: ProfileUpdateRequestData, approve: boolean) {
     setActingId(request.id);
@@ -165,29 +167,7 @@ export default function ProfileRequestsPage() {
         </Table>
       )}
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-brand-ink/60">
-          <button
-            type="button"
-            disabled={pageNumber <= 1}
-            onClick={() => setPageNumber((n) => Math.max(1, n - 1))}
-            className="rounded-full border border-brand-line px-3 py-1.5 font-medium transition hover:bg-brand-line/25 disabled:opacity-40"
-          >
-            Previous
-          </button>
-          <span>
-            Page {pageNumber} of {totalPages}
-          </span>
-          <button
-            type="button"
-            disabled={pageNumber >= totalPages}
-            onClick={() => setPageNumber((n) => Math.min(totalPages, n + 1))}
-            className="rounded-full border border-brand-line px-3 py-1.5 font-medium transition hover:bg-brand-line/25 disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <Pagination pageNumber={pageNumber} pageSize={pageSize} totalCount={totalCount} totalPages={totalPages} onPageChange={setPageNumber} onPageSizeChange={(size) => { setPageSize(size); setPageNumber(1); }} />
     </div>
   );
 }
