@@ -29,6 +29,10 @@ export interface StatCardProps {
   accent?: string;
   /** CSS color for the big figure. Defaults to the body ink. */
   valueColor?: string;
+  /** Muted color tint for the whole metric tile. */
+  tone?: "green" | "red" | "blue" | "gold";
+  /** Short context or data availability note below the figure. */
+  note?: string;
 }
 
 function deltaSign(delta: string): 1 | -1 | 0 {
@@ -87,6 +91,8 @@ export function StatCard({
   trend,
   accent = "var(--chart-1)",
   valueColor = "var(--brand-ink)",
+  tone,
+  note,
 }: StatCardProps) {
   const sign = delta ? deltaSign(delta) : 0;
   const isGood =
@@ -95,7 +101,13 @@ export function StatCard({
     isGood === null ? "var(--brand-ink)" : isGood ? "var(--status-good)" : "var(--status-bad)";
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-brand-line bg-surface-card p-5">
+    <div
+      className="flex min-w-0 flex-col gap-3 rounded-2xl border p-5"
+      style={tone ? {
+        borderColor: `color-mix(in srgb, var(--stat-${tone}) 35%, var(--brand-line))`,
+        backgroundColor: `color-mix(in srgb, var(--stat-${tone}) 8%, var(--surface-card))`,
+      } : undefined}
+    >
       {/* Label gets its own full-width row so a long one ("Loans
           outstanding") stays on a single line instead of wrapping
           beside the figure; the figure then gets the full card width, so a
@@ -107,6 +119,7 @@ export function StatCard({
       >
         {label}
       </p>
+      {note ? <p className="-mt-2 text-xs text-brand-ink/55">{note}</p> : null}
       <p
         className="min-w-0 text-2xl font-bold tabular-nums [overflow-wrap:anywhere]"
         style={{ color: valueColor }}

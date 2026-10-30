@@ -2,128 +2,46 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { StatCard } from "./StatCard";
-import { LineChart } from "./LineChart";
-import { BarChart } from "./BarChart";
-import { StackedBar } from "./StackedBar";
-import { ChartCard } from "./ChartCard";
+import { BarChart } from "@/components/dashboard/BarChart";
+import { ChartCard } from "@/components/dashboard/ChartCard";
+import { StatCard } from "@/components/dashboard/StatCard";
 import { Money } from "@/components/money/MoneyPopup";
-import { FiltersBar, type DashboardFilters, type DateRangeKey } from "./FiltersBar";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeaderCell,
-  TableRow,
-} from "@/components/ui/Table";
-import {
-  ALL_ENTRIES,
-  MEMBER_COUNTS,
-  MEMBER_COUNTS_PREV,
-  MONTHS,
-  OPENING_LOAN_BALANCE,
-  RECENT_ACTIVITY,
-  SOCIETIES,
-  TRANSACTION_TYPES,
-  formatNaira,
-  type TransactionType,
-} from "@/lib/dashboard-data";
-import { usePendingPinResetCount } from "@/lib/use-pending-pin-resets";
+import { ApiError } from "@/lib/api-client";
+import { getFinancialSummary, type FinancialSummaryData } from "@/lib/api/financial-summary";
+import { listSocietyMembers } from "@/lib/api/society-members";
 import { readSessionInfo } from "@/lib/session";
-import { useSociety } from "@/lib/society-context";
 import { isSuperadmin, type Role } from "@/lib/roles";
+import { useSociety } from "@/lib/society-context";
+import { usePendingPinResetCount } from "@/lib/use-pending-pin-resets";
 
-/**
- * A small, dismiss-free alert tile: how many PIN reset requests are
- * waiting for the signed-in officer to approve. Only rendered for the
- * four roles that can actually act on the queue (matches PIN Reset
- * Requests' NAV_ITEMS roles in src/lib/roles.ts). The count itself comes
- * from usePendingPinResetCount — the same hook that drives the badge on
- * the sidebar's "PIN Reset Requests" item — so both always agree.
- */
+const SAVINGS_CATEGORIES = new Set([
+  "Savings", "Car Loan Savings", "B. Loan Savings", "Okada Loan Savings",
+  "Special Savings", "Land Savings",
+]);
+
 function PendingPinResetsCard({ role, societyId }: { role: Role; societyId: string }) {
   const { count, error } = usePendingPinResetCount(role, societyId, true);
+  if (count === null && !error) return null;
 
-  if (count === null && !error) {
-    return null;
-  }
-
-  return (
-    <Link
-      href="/pin-resets"
-      className="flex items-center justify-between gap-3 rounded-2xl border border-brand-line bg-surface-card p-4 transition hover:border-brand-gold"
-    >
-      <div>
-        <p className="text-sm font-bold text-heading">Pending PIN reset requests</p>
-        <p className="mt-0.5 text-xs text-brand-ink/60">
-          {isSuperadmin(role) ? "For the society selected in the sidebar switcher." : "For your society."}
-        </p>
-      </div>
-      {error ? (
-        <span className="text-xs font-semibold text-status-bad">{error}</span>
-      ) : (
-        <span
-          className={`inline-flex min-w-9 items-center justify-center rounded-full px-3 py-1.5 text-sm font-bold ${
-            count && count > 0 ? "bg-status-bad text-white" : "bg-brand-line/30 text-brand-ink/60"
-          }`}
-        >
-          {count}
-        </span>
-      )}
-    </Link>
-  );
-}
-
-const RANGE_INDICES: Record<DateRangeKey, number[]> = {
-  "6m": [0, 1, 2, 3, 4, 5],
-  "3m": [3, 4, 5],
-  "1m": [5],
-};
-
-function monthlySeries(type: TransactionType, societyId: string): number[] {
-  return MONTHS.map((month) =>
-    ALL_ENTRIES.filter(
-      (e) =>
-        e.type === type &&
-        e.month === month &&
-        (societyId === "all" || e.societyId === societyId)
-    ).reduce((sum, e) => sum + e.amount, 0)
-  );
-}
-
-function sumAt(values: number[], indices: number[]): number {
-  return indices.reduce((sum, i) => sum + values[i], 0);
-}
-
-/** Running total at each index, without a mutable accumulator — each
- * entry is its own pure reduction over the slice up to it. */
-function cumulative(values: number[]): number[] {
-  return values.map((_, i) =>
-    values.slice(0, i + 1).reduce((sum, v) => sum + v, 0)
-  );
-}
-
-function pctDelta(curr: number, prev: number): number {
-  if (prev === 0) return 0;
-  return ((curr - prev) / prev) * 100;
-}
-
-function formatPct(n: number): string {
-  const sign = n >= 0 ? "+" : "";
-  return `${sign}${n.toFixed(1)}%`;
+  return <Link href="/pin-resets" className="flex items-center justify-between gap-3 rounded-2xl border border-brand-line bg-surface-card p-4 transition hover:border-brand-gold">
+    <div>
+      <p className="text-sm font-bold text-heading">Pending PIN reset requests</p>
+      <p className="mt-0.5 text-xs text-brand-ink/60">{isSuperadmin(role) ? "For the society selected in the sidebar." : "For your society."}</p>
+    </div>
+    {error ? <span className="text-xs font-semibold text-status-bad">{error}</span> : <span className={`inline-flex min-w-9 items-center justify-center rounded-full px-3 py-1.5 text-sm font-bold ${count && count > 0 ? "bg-status-bad text-white" : "bg-brand-line/30 text-brand-ink/60"}`}>{count}</span>}
+  </Link>;
 }
 
 export function DashboardClient() {
-  const [filters, setFilters] = useState<DashboardFilters>({
-    societyId: "all",
-    range: "6m",
-    type: "all",
-  });
-
   const [role, setRole] = useState<Role | null>(null);
   const [ownSocietyId, setOwnSocietyId] = useState("");
+  const [summary, setSummary] = useState<FinancialSummaryData | null>(null);
+  const [memberCount, setMemberCount] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
   const { societyId: switchedSocietyId } = useSociety();
+  const societyId = role && isSuperadmin(role) ? switchedSocietyId : ownSocietyId;
 
   useEffect(() => {
     const info = readSessionInfo();
@@ -131,315 +49,123 @@ export function DashboardClient() {
     setOwnSocietyId(info?.societyId ?? "");
   }, []);
 
-  const canHandlePinResets =
-    role === "supervisor" ||
-    role === "president" ||
-    role === "developer_superadmin" ||
-    role === "onward_superadmin";
+  useEffect(() => {
+    if (!role || !societyId) {
+      setSummary(null);
+      setMemberCount(null);
+      setError(null);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
 
-  const rangeIdx = RANGE_INDICES[filters.range];
-  const lastIdx = MONTHS.length - 1;
+    async function loadDashboard() {
+      try {
+        const [financialResponse, firstMemberPage] = await Promise.all([
+          getFinancialSummary(role!, societyId),
+          listSocietyMembers(societyId, 1, 100),
+        ]);
+        if (!financialResponse.success || !financialResponse.data) {
+          throw new Error(financialResponse.message || "Financial summary could not be loaded.");
+        }
+        if (!firstMemberPage.success || !firstMemberPage.data) {
+          throw new Error(firstMemberPage.message || "Society members could not be loaded.");
+        }
 
-  const {
-    savingsMonthly,
-    repaymentMonthly,
-    totalSavings,
-    totalSavingsDelta,
-    outstandingSeries,
-    outstandingValue,
-    outstandingDelta,
-    repaymentRateSeries,
-    repaymentRateValue,
-    repaymentRateDelta,
-    totalMembers,
-    totalMembersDelta,
-  } = useMemo(() => {
-    const savings = monthlySeries("Savings deposit", filters.societyId);
-    const repayment = monthlySeries("Loan repayment", filters.societyId);
-    const disbursement = monthlySeries("Loan disbursement", filters.societyId);
+        const pages = firstMemberPage.data.totalPages;
+        const rest = pages > 1
+          ? await Promise.all(Array.from({ length: pages - 1 }, (_, index) =>
+              listSocietyMembers(societyId, index + 2, 100)))
+          : [];
+        const memberPages = [firstMemberPage, ...rest];
+        if (memberPages.some((page) => !page.success || !page.data)) {
+          throw new Error("The complete society roster could not be loaded.");
+        }
+        const count = memberPages.reduce((total, page) => total +
+          (page.data?.items.filter((item) => item.roles.includes("Member")).length ?? 0), 0);
 
-    const savingsInRange = sumAt(savings, rangeIdx);
-    const savingsPrevMonth = savings[lastIdx - 1] ?? savings[lastIdx];
+        if (cancelled) return;
+        setSummary(financialResponse.data);
+        setMemberCount(count);
+      } catch (err) {
+        if (cancelled) return;
+        setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Dashboard data could not be loaded.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
 
-    // Net outstanding balance is cumulative (disbursed minus repaid to
-    // date) on top of the book's opening balance, not something that
-    // resets per filter range — a "last 3 months" view still shows
-    // the whole book's current balance.
-    const opening =
-      filters.societyId === "all"
-        ? Object.values(OPENING_LOAN_BALANCE).reduce((a, b) => a + b, 0)
-        : OPENING_LOAN_BALANCE[filters.societyId];
-    const net = disbursement.map((d, i) => d - repayment[i]);
-    const outstanding = cumulative(net).map((v) => v + opening);
+    void loadDashboard();
+    return () => { cancelled = true; };
+  }, [role, societyId, reload]);
 
-    const rate = disbursement.map((d, i) => (d === 0 ? 0 : (repayment[i] / d) * 100));
-
-    const members =
-      filters.societyId === "all"
-        ? Object.values(MEMBER_COUNTS).reduce((a, b) => a + b, 0)
-        : MEMBER_COUNTS[filters.societyId];
-    const membersPrev =
-      filters.societyId === "all"
-        ? Object.values(MEMBER_COUNTS_PREV).reduce((a, b) => a + b, 0)
-        : MEMBER_COUNTS_PREV[filters.societyId];
-
+  const totals = useMemo(() => {
+    const categories = summary?.categoryTotals ?? [];
     return {
-      savingsMonthly: savings,
-      repaymentMonthly: repayment,
-      totalSavings: savingsInRange,
-      totalSavingsDelta: pctDelta(savings[lastIdx], savingsPrevMonth),
-      outstandingSeries: outstanding,
-      outstandingValue: outstanding[lastIdx],
-      outstandingDelta: pctDelta(outstanding[lastIdx], outstanding[lastIdx - 1]),
-      repaymentRateSeries: rate,
-      repaymentRateValue: sumAt(repayment, rangeIdx) / (sumAt(disbursement, rangeIdx) || 1) * 100,
-      repaymentRateDelta: rate[lastIdx] - rate[lastIdx - 1],
-      totalMembers: members,
-      totalMembersDelta: pctDelta(members, membersPrev),
+      savings: categories.filter((item) => SAVINGS_CATEGORIES.has(item.category))
+        .reduce((total, item) => total + item.totalAmount, 0),
+      loanCategoryValue: categories.filter((item) => !SAVINGS_CATEGORIES.has(item.category) &&
+        !["Shares", "Savings"].includes(item.category))
+        .reduce((total, item) => total + item.totalAmount, 0),
     };
-  }, [filters.societyId, rangeIdx, lastIdx]);
+  }, [summary]);
 
-  const barData = useMemo(
-    () =>
-      SOCIETIES.map((s) => ({
-        label: s.name,
-        value: sumAt(monthlySeries("Savings deposit", s.id), rangeIdx),
-      })),
-    [rangeIdx]
-  );
+  const canHandlePinResets = role === "supervisor" || role === "president" ||
+    role === "developer_superadmin" || role === "onward_superadmin";
 
-  const mixSegments = useMemo(() => {
-    const colors: Record<TransactionType, string> = {
-      "Savings deposit": "var(--chart-1)",
-      "Loan repayment": "var(--chart-2)",
-      "Loan disbursement": "var(--chart-3)",
-    };
-    return TRANSACTION_TYPES.map((type) => ({
-      key: type,
-      label: type,
-      value: sumAt(monthlySeries(type, filters.societyId), rangeIdx),
-      color: colors[type],
-    }));
-  }, [filters.societyId, rangeIdx]);
+  if (!role) return <p className="text-sm text-brand-ink/60">Loading dashboard…</p>;
+  if (!isSuperadmin(role) && !["admin", "supervisor", "president"].includes(role)) {
+    return <p className="text-sm text-brand-ink/60">Dashboard data is not available for your role.</p>;
+  }
+  if (isSuperadmin(role) && !societyId) {
+    return <div className="rounded-2xl border border-dashed border-brand-line bg-surface-card p-6 text-sm text-brand-ink/65">Choose a society from the sidebar switcher to view its dashboard.</div>;
+  }
+  if (!societyId) {
+    return <div className="rounded-2xl border border-dashed border-brand-line bg-surface-card p-6 text-sm text-brand-ink/65">Your society could not be determined from your session. Try signing in again.</div>;
+  }
 
-  const activityRows = RECENT_ACTIVITY.filter(
-    (row) =>
-      (filters.societyId === "all" || row.societyId === filters.societyId) &&
-      (filters.type === "all" || row.type === filters.type)
-  );
-  const societyName = (id: string) =>
-    SOCIETIES.find((s) => s.id === id)?.name ?? id;
+  const categories = (summary?.categoryTotals ?? []).filter((item) => item.transactionCount > 0)
+    .sort((a, b) => b.totalAmount - a.totalAmount);
 
-  return (
-    <div className="flex flex-col gap-4">
+  return <div className="flex min-w-0 flex-col gap-5">
+    <header className="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="font-heading text-xl font-bold text-heading">
-          Dashboard
-        </h1>
+        <h1 className="font-heading text-2xl font-bold text-heading">Dashboard</h1>
+        <p className="mt-1 text-sm text-brand-ink/60">{summary?.societyName ?? "Society overview"} · All-time figures from the backend</p>
       </div>
-      <p className="text-xs text-brand-ink/60 sm:text-sm">
-        Figures below are sample data — the financial-records backend
-        hasn&apos;t been built yet (Dashboards &amp; Export phase). The
-        filters are fully wired to this sample set so the layout can be
-        reviewed against real interaction, not just a static mock.
-      </p>
+      <button type="button" onClick={() => setReload((value) => value + 1)} disabled={loading} className="rounded-full border border-brand-line px-4 py-2 text-sm font-semibold text-brand-ink transition hover:border-brand-gold disabled:opacity-50">{loading ? "Refreshing…" : "Refresh"}</button>
+    </header>
 
-      {canHandlePinResets && role && (
-        <PendingPinResetsCard
-          role={role}
-          societyId={isSuperadmin(role) ? switchedSocietyId : ownSocietyId}
-        />
-      )}
+    {canHandlePinResets && <PendingPinResetsCard role={role} societyId={societyId} />}
 
-      <FiltersBar
-        filters={filters}
-        onChange={setFilters}
-        societies={SOCIETIES}
-        types={TRANSACTION_TYPES}
-      />
+    {error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-status-bad/30 bg-status-bad/5 p-4 text-sm text-status-bad"><p>{error}</p><button type="button" onClick={() => setReload((value) => value + 1)} className="font-semibold underline">Try again</button></div>}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Total savings"
-          money={totalSavings}
-          delta={formatPct(totalSavingsDelta)}
-          trend={savingsMonthly}
-          accent="var(--stat-green)"
-          valueColor="var(--stat-green)"
-        />
-        <StatCard
-          label="Loans outstanding"
-          money={outstandingValue}
-          delta={formatPct(outstandingDelta)}
-          trend={outstandingSeries}
-          accent="var(--stat-red)"
-          valueColor="var(--stat-red)"
-        />
-        <StatCard
-          label="Total members"
-          value={totalMembers.toLocaleString()}
-          delta={formatPct(totalMembersDelta)}
-          trend={[
-            MEMBER_COUNTS_PREV[filters.societyId] ??
-              Object.values(MEMBER_COUNTS_PREV).reduce((a, b) => a + b, 0),
-            totalMembers,
-          ]}
-          accent="var(--stat-blue)"
-          valueColor="var(--stat-blue)"
-        />
-        <StatCard
-          label="Repayment rate"
-          value={`${repaymentRateValue.toFixed(0)}%`}
-          delta={`${repaymentRateDelta >= 0 ? "+" : ""}${repaymentRateDelta.toFixed(1)}pp`}
-          trend={repaymentRateSeries}
-          accent="var(--stat-gold)"
-          valueColor="var(--stat-gold)"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="xl:col-span-2">
-          <ChartCard
-            title="Savings deposits & loan repayments"
-            caption={`Monthly totals, ${filters.societyId === "all" ? "all societies" : societyName(filters.societyId)}`}
-            table={{
-              headers: ["Month", "Savings deposits", "Loan repayments"],
-              rows: MONTHS.map((m, i) => [
-                m,
-                <Money key="s" value={savingsMonthly[i]} />,
-                <Money key="r" value={repaymentMonthly[i]} />,
-              ]),
-            }}
-          >
-            <LineChart
-              categories={[...MONTHS]}
-              series={[
-                {
-                  key: "savings",
-                  label: "Savings deposits",
-                  color: "var(--chart-1)",
-                  values: savingsMonthly,
-                },
-                {
-                  key: "repayments",
-                  label: "Loan repayments",
-                  color: "var(--chart-2)",
-                  values: repaymentMonthly,
-                },
-              ]}
-              valueFormatter={formatNaira}
-            />
-          </ChartCard>
-        </div>
-
-        <ChartCard
-          title="Transaction mix"
-          caption="Share of total value, by type"
-          table={{
-            headers: ["Type", "Value", "Share"],
-            rows: mixSegments.map((s) => {
-              const total = mixSegments.reduce((a, b) => a + b.value, 0) || 1;
-              return [s.label, <Money key="v" value={s.value} />, `${Math.round((s.value / total) * 100)}%`];
-            }),
-          }}
-        >
-          <StackedBar
-            segments={mixSegments}
-            valueFormatter={formatNaira}
-            highlightKey={filters.type === "all" ? undefined : filters.type}
-          />
-        </ChartCard>
-      </div>
-
-      <ChartCard
-        title="Savings by society"
-        caption="Compares all three societies regardless of the Society filter above — select one to highlight it here"
-        table={{
-          headers: ["Society", "Savings deposits"],
-          rows: barData.map((d) => [d.label, <Money key="v" value={d.value} />]),
-        }}
-      >
-        <BarChart
-          data={barData}
-          color="var(--chart-1)"
-          colors={[
-            "var(--stat-green)",
-            "var(--stat-red)",
-            "var(--stat-blue)",
-            "var(--stat-gold)",
-          ]}
-          highlightLabel={
-            filters.societyId === "all" ? undefined : societyName(filters.societyId)
-          }
-        />
-      </ChartCard>
-
-      <div>
-        <h2 className="font-heading text-base font-bold text-heading">
-          Recent activity
-        </h2>
-        <p className="mt-1 text-xs text-brand-ink/55">
-          Sample rows, scoped by Society and Transaction type above.
-        </p>
-        <ul role="list" className="mt-2 flex flex-col gap-2 sm:hidden">
-          {activityRows.length === 0 ? (
-            <li className="rounded-2xl border border-brand-line bg-surface-card p-4 text-center text-sm text-brand-ink/50">
-              No activity matches the current filters.
-            </li>
-          ) : (
-            activityRows.map((entry) => (
-              <li
-                key={`${entry.member}-${entry.date}`}
-                className="flex items-start justify-between gap-3 rounded-2xl border border-brand-line bg-surface-card p-4"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-brand-ink">{entry.member}</p>
-                  <p className="text-xs text-brand-ink/60">{entry.type}</p>
-                  <p className="truncate text-xs text-brand-ink/50">{societyName(entry.societyId)}</p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <Money value={entry.amount} label={entry.type} className="text-sm font-bold text-brand-ink" />
-                  <p className="mt-0.5 text-xs tabular-nums text-brand-ink/50">{entry.date}</p>
-                </div>
-              </li>
-            ))
-          )}
-        </ul>
-        <div className="mt-2 hidden sm:block">
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableHeaderCell>Member</TableHeaderCell>
-                <TableHeaderCell>Society</TableHeaderCell>
-                <TableHeaderCell>Type</TableHeaderCell>
-                <TableHeaderCell>Amount</TableHeaderCell>
-                <TableHeaderCell>Date</TableHeaderCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {activityRows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-brand-ink/50">
-                    No activity matches the current filters.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                activityRows.map((entry) => (
-                  <TableRow key={`${entry.member}-${entry.date}`}>
-                    <TableCell>{entry.member}</TableCell>
-                    <TableCell>{societyName(entry.societyId)}</TableCell>
-                    <TableCell>{entry.type}</TableCell>
-                    <TableCell className="tabular-nums">
-                      <Money value={entry.amount} label={entry.type} />
-                    </TableCell>
-                    <TableCell className="tabular-nums">{entry.date}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+    <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <StatCard label="Total savings" money={totals.savings} note="Savings categories recorded to date" tone="green" accent="var(--stat-green)" valueColor="var(--stat-green)" />
+      <StatCard label="Loans outstanding" value="Not tracked" note="The backend has no loan balance or repayment status" tone="red" accent="var(--stat-red)" valueColor="var(--stat-red)" />
+      <StatCard label="Total members" value={memberCount === null ? (loading ? "Loading…" : "—") : memberCount.toLocaleString()} note="Users with the Member role in this society" tone="blue" accent="var(--stat-blue)" valueColor="var(--stat-blue)" />
+      <StatCard label="Repayment rate" value="Not tracked" note="Transactions are not classified as repayments" tone="gold" accent="var(--stat-gold)" valueColor="var(--stat-gold)" />
     </div>
-  );
+
+    {summary && <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+      <div className="rounded-2xl border border-brand-line bg-surface-card p-5">
+        <p className="text-xs font-bold uppercase tracking-wide text-label">Financial records</p>
+        <p className="mt-2 text-2xl font-bold tabular-nums text-heading">{summary.transactionCount.toLocaleString()}</p>
+        <p className="mt-1 text-xs text-brand-ink/55">{summary.transactionCount === 1 ? "record" : "records"} · all time</p>
+        <div className="mt-4 border-t border-brand-line pt-3">
+          <p className="text-xs text-brand-ink/55">Recorded category value</p>
+          <Money value={summary.totalAmount} className="mt-1 text-lg font-bold text-heading" />
+        </div>
+      </div>
+      <ChartCard title="Financial records by category" caption="All-time totals returned by the society financial-summary endpoint" table={{
+        headers: ["Category", "Records", "Amount"],
+        rows: categories.map((item) => [item.category, item.transactionCount.toLocaleString(), <Money key={item.category} value={item.totalAmount} />]),
+      }}>
+        {categories.length > 0 ? <BarChart data={categories.map((item) => ({ label: item.category, value: item.totalAmount }))} colors={["var(--stat-green)", "var(--stat-red)", "var(--stat-blue)", "var(--stat-gold)"]} /> : <p className="rounded-xl bg-brand-line/15 p-4 text-sm text-brand-ink/55">No financial records have been recorded for this society yet.</p>}
+      </ChartCard>
+    </section>}
+
+    {!summary && loading && <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Loading dashboard data">{[0, 1, 2, 3].map((item) => <div key={item} className="h-36 animate-pulse rounded-2xl border border-brand-line bg-surface-card" />)}</div>}
+  </div>;
 }
