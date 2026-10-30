@@ -15,6 +15,7 @@ import {
   type CreatedFinancialTransactionData,
   type UpdatedFinancialTransactionData,
   type FinancialCategory,
+  type PaymentMethod,
 } from "@/lib/api/financial-transactions";
 import { listSocietyMembers, type SocietyMemberSummary } from "@/lib/api/society-members";
 import { readSessionInfo } from "@/lib/session";
@@ -89,16 +90,19 @@ function DeveloperTransactionSection() {
   return (
     <TransactionForm
       societyId={societyId}
-      create={(memberId, category, amount, transactionDate) =>
-        createFinancialTransactionForSociety(societyId, memberId, category, amount, transactionDate)
+      create={(memberId, category, amount, transactionDate, referenceNumber, paymentMethod) =>
+        createFinancialTransactionForSociety(societyId, memberId, category, amount, transactionDate, referenceNumber, paymentMethod)
       }
-      update={(transactionId, category, amount, transactionDate) =>
+      update={(transactionId, category, amount, transactionDate, version, referenceNumber, paymentMethod) =>
         updateFinancialTransactionForSociety(
           societyId,
           transactionId,
           category,
           amount,
-          transactionDate
+          transactionDate,
+          version,
+          referenceNumber,
+          paymentMethod
         )
       }
     />
@@ -109,11 +113,11 @@ function AdminTransactionCard({ societyId }: { societyId: string }) {
   return (
     <TransactionForm
       societyId={societyId}
-      create={(memberId, category, amount, transactionDate) =>
-        createFinancialTransactionAsAdmin(memberId, category, amount, transactionDate)
+      create={(memberId, category, amount, transactionDate, referenceNumber, paymentMethod) =>
+        createFinancialTransactionAsAdmin(memberId, category, amount, transactionDate, referenceNumber, paymentMethod)
       }
-      update={(transactionId, category, amount, transactionDate) =>
-        updateFinancialTransactionAsAdmin(transactionId, category, amount, transactionDate)
+      update={(transactionId, category, amount, transactionDate, version, referenceNumber, paymentMethod) =>
+        updateFinancialTransactionAsAdmin(transactionId, category, amount, transactionDate, version, referenceNumber, paymentMethod)
       }
     />
   );
@@ -129,13 +133,18 @@ function TransactionForm({
     memberId: string,
     category: FinancialCategory,
     amount: number,
-    transactionDate: string
+    transactionDate: string,
+    referenceNumber: string,
+    paymentMethod: PaymentMethod | ""
   ) => Promise<ApiEnvelope<CreatedFinancialTransactionData>>;
   update: (
     transactionId: string,
     category: FinancialCategory,
     amount: number,
-    transactionDate: string
+    transactionDate: string,
+    version: number,
+    referenceNumber: string,
+    paymentMethod: PaymentMethod | ""
   ) => Promise<ApiEnvelope<UpdatedFinancialTransactionData>>;
 }) {
   const [roster, setRoster] = useState<SocietyMemberSummary[]>([]);
@@ -144,6 +153,8 @@ function TransactionForm({
   const [category, setCategory] = useState<FinancialCategory>(FINANCIAL_CATEGORIES[0]);
   const [amount, setAmount] = useState("");
   const [transactionDate, setTransactionDate] = useState("");
+  const [referenceNumber, setReferenceNumber] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedFinancialTransactionData | null>(null);
@@ -184,7 +195,7 @@ function TransactionForm({
     }
     setSubmitting(true);
     try {
-      const response = await create(memberId, category, parsedAmount, transactionDate);
+      const response = await create(memberId, category, parsedAmount, transactionDate, referenceNumber, paymentMethod);
       if (!response.success || !response.data) {
         setError(response.message || "The transaction could not be recorded.");
         return;
@@ -193,6 +204,8 @@ function TransactionForm({
       setMemberId("");
       setAmount("");
       setTransactionDate("");
+      setReferenceNumber("");
+      setPaymentMethod("");
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -276,6 +289,18 @@ function TransactionForm({
           </div>
         </div>
 
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex-1">
+            <Input id="transaction-reference" label="Reference number (optional)" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value.toUpperCase())} maxLength={100} />
+          </div>
+          <div className="flex-1">
+            <label htmlFor="transaction-payment-method" className="mb-1 block text-sm font-semibold text-heading">Payment method (optional)</label>
+            <select id="transaction-payment-method" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod | "")} className="w-full rounded-full border border-brand-line bg-brand-line/25 px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:bg-brand-cream focus:ring-2 focus:ring-brand-gold/30">
+              <option value="">Not specified</option><option value="Cash">Cash</option><option value="Transfer">Transfer</option>
+            </select>
+          </div>
+        </div>
+
         <Button type="submit" disabled={submitting} className="self-start">
           {submitting ? "Recording…" : "Record transaction"}
         </Button>
@@ -307,7 +332,10 @@ function RecordedTransactionCard({
     transactionId: string,
     category: FinancialCategory,
     amount: number,
-    transactionDate: string
+    transactionDate: string,
+    version: number,
+    referenceNumber: string,
+    paymentMethod: PaymentMethod | ""
   ) => Promise<ApiEnvelope<UpdatedFinancialTransactionData>>;
 }) {
   const [current, setCurrent] = useState(transaction);
@@ -319,6 +347,8 @@ function RecordedTransactionCard({
   );
   const [amount, setAmount] = useState(String(transaction.amount));
   const [transactionDate, setTransactionDate] = useState(transaction.transactionDate);
+  const [referenceNumber, setReferenceNumber] = useState(transaction.referenceNumber ?? "");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(transaction.paymentMethod ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -338,7 +368,7 @@ function RecordedTransactionCard({
     }
     setSubmitting(true);
     try {
-      const response = await onUpdate(current.id, category, parsedAmount, transactionDate);
+      const response = await onUpdate(current.id, category, parsedAmount, transactionDate, current.version, referenceNumber, paymentMethod);
       if (!response.success || !response.data) {
         setError(response.message || "The transaction could not be updated.");
         return;
@@ -363,6 +393,8 @@ function RecordedTransactionCard({
         <p className="font-semibold text-brand-ink">
           Recorded: {current.category} — <Money value={current.amount} /> on{" "}
           {current.transactionDate}.
+          {current.referenceNumber && <> Reference {current.referenceNumber}.</>}
+          {current.paymentMethod && <> Paid by {current.paymentMethod}.</>}
         </p>
         {!editing && (
           <button
@@ -418,6 +450,17 @@ function RecordedTransactionCard({
                 value={transactionDate}
                 onChange={(e) => setTransactionDate(e.target.value)}
               />
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex-1">
+              <Input id={`edit-reference-${current.id}`} label="Reference number (optional)" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value.toUpperCase())} maxLength={100} />
+            </div>
+            <div className="flex-1">
+              <label htmlFor={`edit-payment-method-${current.id}`} className="mb-1 block text-sm font-semibold text-heading">Payment method (optional)</label>
+              <select id={`edit-payment-method-${current.id}`} value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod | "")} className="w-full rounded-full border border-brand-line bg-brand-cream px-5 py-3 text-sm text-brand-ink outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/30">
+                <option value="">Not specified</option><option value="Cash">Cash</option><option value="Transfer">Transfer</option>
+              </select>
             </div>
           </div>
           <div className="flex gap-2">

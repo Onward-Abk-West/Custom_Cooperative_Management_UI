@@ -83,6 +83,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["admin", "developer_superadmin"],
   },
   {
+    label: "Monthly Import",
+    href: "/monthly-import",
+    // MonthlyFinancialImportsController allows Admin and either superadmin.
+    roles: ["admin", "developer_superadmin", "onward_superadmin"],
+  },
+  {
     label: "PIN Reset Requests",
     href: "/pin-resets",
     // Matches PinResetRequestsController's [Authorize(Roles = ...)] exactly.
