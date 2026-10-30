@@ -13,7 +13,8 @@ import {
   authenticateFirstTimeMember,
   completeFirstTimePinSetup,
 } from "@/lib/api/first-time-auth";
-import { verifyPinReset, completePinReset } from "@/lib/api/pin-reset";
+import { verifyPinReset, completePinReset, requestPublicPinReset } from "@/lib/api/pin-reset";
+import { confirmAction, showError, showSuccess } from "@/lib/feedback";
 
 /**
  * The single, dynamic sign-in entry point. A member only ever has to
@@ -59,6 +60,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("identify");
   const [identifier, setIdentifier] = useState("");
+  const [verifiedIdentifier, setVerifiedIdentifier] = useState<string | null>(null);
   const [pin, setPin] = useState("");
   const [credential, setCredential] = useState("");
   const [pinSetupToken, setPinSetupToken] = useState<string | null>(null);
@@ -69,6 +71,7 @@ export default function LoginPage() {
 
   function resetToIdentify() {
     setStep("identify");
+    setVerifiedIdentifier(null);
     setPin("");
     setCredential("");
     setPinSetupToken(null);
@@ -92,9 +95,13 @@ export default function LoginPage() {
     try {
       const response = await identifyAccount(identifier.trim());
       if (!response.success || !response.data) {
+        setVerifiedIdentifier(null);
         setError(response.message || "We couldn't find that account.");
         return;
       }
+      // Keep the exact identifier that the API has confirmed exists. The
+      // forgot PIN action is only available after this successful response.
+      setVerifiedIdentifier(identifier.trim());
       switch (response.data.nextStep) {
         case LOGIN_STEP.firstTime:
           setStep("firstTimeCredential");
@@ -307,6 +314,22 @@ export default function LoginPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleForgotPin() {
+    if (step !== "pin" || !verifiedIdentifier || submitting) return;
+    const confirmed = await confirmAction("Request a PIN reset?", "Your request will be sent to your society administrator for review.", "Submit request");
+    if (!confirmed) return;
+    setSubmitting(true); setError(null);
+    try {
+      const response = await requestPublicPinReset(verifiedIdentifier);
+      if (!response.success) throw new Error(response.message || "The request could not be submitted.");
+      await showSuccess("PIN reset request submitted", "Please contact your society administrator to complete your PIN reset. Once approved, you will need to set a new PIN before accessing your account.");
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Could not reach the server.";
+      setError(message);
+      await showError("Request not submitted", message);
+    } finally { setSubmitting(false); }
   }
 
   const backToIdentify = (
@@ -566,7 +589,10 @@ export default function LoginPage() {
             {submitting ? "Signing in…" : "Log in"}
           </Button>
         </form>
-        {backToIdentify}
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs">
+          <span className="text-brand-ink/50">Not you?</span><button type="button" onClick={resetToIdentify} className="font-medium text-brand-gold-dark hover:underline">Start over</button>
+          <button type="button" onClick={handleForgotPin} disabled={submitting} className="font-semibold text-brand-green-deep hover:underline disabled:opacity-50">{submitting ? "Submitting…" : "Forgotten PIN?"}</button>
+        </div>
       </AuthCard>
     );
   }

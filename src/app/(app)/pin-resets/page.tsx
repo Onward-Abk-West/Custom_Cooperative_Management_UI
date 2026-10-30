@@ -11,11 +11,15 @@ import {
 } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
+import { usePageSize } from "@/lib/use-page-size";
+import { confirmAction, showError, showSuccess } from "@/lib/feedback";
 import { ApiError } from "@/lib/api-client";
 import { PIN_RESETS_CHANGED_EVENT } from "@/lib/use-pending-pin-resets";
 import {
   listPendingPinResets,
   approvePinReset,
+  rejectPinReset,
+  listPinResetHistory,
   type PinResetRequestData,
 } from "@/lib/api/pin-reset";
 
@@ -41,7 +45,7 @@ interface ApprovedCredential {
 
 export default function PinResetsPage() {
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [pageSize, setPageSize] = usePageSize(DEFAULT_PAGE_SIZE);
   const [items, setItems] = useState<PinResetRequestData[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -49,12 +53,13 @@ export default function PinResetsPage() {
   const [error, setError] = useState<string | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [approved, setApproved] = useState<ApprovedCredential[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    listPendingPinResets(pageNumber, pageSize)
+    (showHistory ? listPinResetHistory : listPendingPinResets)(pageNumber, pageSize)
       .then((response) => {
         if (cancelled) return;
         if (!response.success || !response.data) {
@@ -79,9 +84,10 @@ export default function PinResetsPage() {
     return () => {
       cancelled = true;
     };
-  }, [pageNumber, pageSize]);
+  }, [pageNumber, pageSize, showHistory]);
 
   async function handleApprove(request: PinResetRequestData) {
+    if (!await confirmAction("Approve this PIN reset?", "The member will need to use a one-time reset credential and choose a new PIN.", "Approve reset")) return;
     setApprovingId(request.id);
     setError(null);
     try {
@@ -103,13 +109,29 @@ export default function PinResetsPage() {
       setTotalCount((count) => Math.max(0, count - 1));
       // Tell the sidebar badge / dashboard tile to re-count right away.
       window.dispatchEvent(new Event(PIN_RESETS_CHANGED_EVENT));
+      await showSuccess("PIN reset approved", "Give the one-time reset credential shown below to the verified member.");
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message || "This request could not be approved." : "Could not reach the server."
-      );
+      const message = err instanceof ApiError ? err.message || "This request could not be approved." : "Could not reach the server.";
+      setError(message); await showError("PIN reset not approved", message);
     } finally {
       setApprovingId(null);
     }
+  }
+
+  async function handleReject(request: PinResetRequestData) {
+    if (!await confirmAction("Reject this PIN reset?", "The request will be recorded in reset history. The member's current PIN remains active.", "Reject request")) return;
+    setApprovingId(request.id);
+    try {
+      const response = await rejectPinReset(request.id);
+      if (!response.success) throw new Error(response.message || "Request could not be rejected.");
+      setItems((current) => current.filter((item) => item.id !== request.id));
+      setTotalCount((count) => Math.max(0, count - 1));
+      window.dispatchEvent(new Event(PIN_RESETS_CHANGED_EVENT));
+      await showSuccess("Request rejected", "The request is available in reset history.");
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Could not reach the server.";
+      setError(message); await showError("Request not rejected", message);
+    } finally { setApprovingId(null); }
   }
 
   return (
@@ -122,6 +144,10 @@ export default function PinResetsPage() {
             : "Pending PIN reset requests."}
         </p>
       </div>
+      <div className="flex gap-2">
+        <Button type="button" variant={showHistory ? "outline" : "primary"} onClick={() => { setShowHistory(false); setPageNumber(1); }}>Pending</Button>
+        <Button type="button" variant={showHistory ? "primary" : "outline"} onClick={() => { setShowHistory(true); setPageNumber(1); }}>History</Button>
+      </div>
 
       {approved.length > 0 && (
         <div className="flex flex-col gap-3">
@@ -130,8 +156,8 @@ export default function PinResetsPage() {
               key={credential.requestId}
               className="rounded-2xl border border-brand-gold/40 bg-brand-gold/10 p-4 text-sm"
             >
-              <p className="font-semibold text-brand-ink">
-                Approved — hand this credential to the member (User ID:{" "}
+          <p className="font-semibold text-brand-ink">
+                Approved — hand this credential to the verified member (User ID:{" "}
                 <span className="font-mono text-xs">{credential.userId}</span>).
               </p>
               <p className="mt-1 text-brand-ink/70">
@@ -166,6 +192,7 @@ export default function PinResetsPage() {
               <TableHeaderCell>User ID</TableHeaderCell>
               <TableHeaderCell>Society ID</TableHeaderCell>
               <TableHeaderCell>Requested</TableHeaderCell>
+              <TableHeaderCell>Status</TableHeaderCell>
               <TableHeaderCell className="text-right">Actions</TableHeaderCell>
             </TableRow>
           </TableHead>
@@ -175,14 +202,15 @@ export default function PinResetsPage() {
                 <TableCell className="font-mono text-xs">{request.userId}</TableCell>
                 <TableCell className="font-mono text-xs text-brand-ink/50">{request.societyId}</TableCell>
                 <TableCell>{new Date(request.requestedAtUtc).toLocaleString()}</TableCell>
+                <TableCell>{request.status}</TableCell>
                 <TableCell className="text-right">
-                  <Button
+                  {!showHistory && <><Button
                     type="button"
                     onClick={() => handleApprove(request)}
                     disabled={approvingId === request.id}
                   >
                     {approvingId === request.id ? "Approving…" : "Approve"}
-                  </Button>
+                  </Button> <Button type="button" variant="outline" onClick={() => handleReject(request)} disabled={approvingId === request.id}>Reject</Button></>}
                 </TableCell>
               </TableRow>
             ))}

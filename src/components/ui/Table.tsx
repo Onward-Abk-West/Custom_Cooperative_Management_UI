@@ -14,11 +14,12 @@ import type {
  * rather than guessing at a shape now).
  */
 export function Table({
+  borderless = false,
   className = "",
   ...props
-}: HTMLAttributes<HTMLTableElement>) {
+}: HTMLAttributes<HTMLTableElement> & { borderless?: boolean }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-brand-line bg-surface-card">
+    <div className={borderless ? "overflow-x-auto rounded-2xl bg-surface-card" : "overflow-x-auto rounded-2xl border border-brand-line bg-surface-card"}>
       <table
         className={`w-full border-collapse text-left text-sm ${className}`}
         {...props}

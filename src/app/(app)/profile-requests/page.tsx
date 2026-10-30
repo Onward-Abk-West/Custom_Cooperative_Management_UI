@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
+import { usePageSize } from "@/lib/use-page-size";
+import { confirmAction, showError, showSuccess } from "@/lib/feedback";
 import { ApiError } from "@/lib/api-client";
 import {
   listPendingProfileUpdateRequests,
@@ -32,7 +34,7 @@ const DEFAULT_PAGE_SIZE = 25;
 
 export default function ProfileRequestsPage() {
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [pageSize, setPageSize] = usePageSize(DEFAULT_PAGE_SIZE);
   const [items, setItems] = useState<ProfileUpdateRequestData[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -73,6 +75,7 @@ export default function ProfileRequestsPage() {
   }, [pageNumber, pageSize]);
 
   async function handleReview(request: ProfileUpdateRequestData, approve: boolean) {
+    if (!await confirmAction(`${approve ? "Approve" : "Reject"} this profile change?`, "This will update the member profile request status.", approve ? "Approve" : "Reject")) return;
     setActingId(request.id);
     setError(null);
     setNotice(null);
@@ -87,12 +90,12 @@ export default function ProfileRequestsPage() {
       setNotice(
         `Request for user ${request.userId} ${approve ? "approved" : "rejected"}.`
       );
+      await showSuccess(approve ? "Profile change approved" : "Profile change rejected", "The request was processed successfully.");
       setItems((current) => current.filter((item) => item.id !== request.id));
       setTotalCount((count) => Math.max(0, count - 1));
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message || "This request could not be reviewed." : "Could not reach the server."
-      );
+      const message = err instanceof ApiError ? err.message || "This request could not be reviewed." : "Could not reach the server.";
+      setError(message); await showError("Request not processed", message);
     } finally {
       setActingId(null);
     }

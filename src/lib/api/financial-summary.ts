@@ -15,6 +15,9 @@ export interface FinancialSummaryData {
   totalAmount: number;
   transactionCount: number;
   categoryTotals: FinancialCategoryTotal[];
+  loansOutstanding?: number | null;
+  activeLoanCount?: number | null;
+  repaymentRate?: number | null;
 }
 
 export function getFinancialSummary(role: Role, societyId: string) {
