@@ -143,6 +143,18 @@ function RequestsIcon(props: IconProps) {
   return <Icon {...props}><path d="M6 4h12a2 2 0 0 1 2 2v14l-3.5-2-3.5 2-3.5-2L6 20V4Z"/><path d="M9 9h6M9 13h6"/></Icon>;
 }
 
+function LoansIcon(props: IconProps) {
+  return <Icon {...props}><path d="M4 7.5h16v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-11Z"/><path d="M4 7.5 6 3.5h12l2 4M8 12h8M8 16h5"/><circle cx="17" cy="16" r="2.5"/></Icon>;
+}
+
+function TransactionsIcon(props: IconProps) {
+  return <Icon {...props}><path d="M5 5.5h14M5 10h14M5 14.5h9M5 19h9"/><path d="m16 16 2 2 3-4"/></Icon>;
+}
+
+function ReportsIcon(props: IconProps) {
+  return <Icon {...props}><path d="M4 19.5V11M10 19.5V5M16 19.5v-7M22 19.5H2"/><path d="m4 8 6-5 6 6 5-4"/></Icon>;
+}
+
 export const NAV_ICONS: Record<string, (props: IconProps) => React.JSX.Element> = {
   "/dashboard": DashboardIcon,
   "/records": RecordsIcon,
@@ -155,6 +167,9 @@ export const NAV_ICONS: Record<string, (props: IconProps) => React.JSX.Element> 
   "/import": ImportIcon,
   "/monthly-import": ImportListIcon,
   "/monthly-import/schedule": ScheduleIcon,
+  "/loans": LoansIcon,
+  "/reports": ReportsIcon,
+  "/financial-records/transactions": TransactionsIcon,
   "/audit-log": AuditIcon,
   "/settings": SettingsNavIcon,
 };

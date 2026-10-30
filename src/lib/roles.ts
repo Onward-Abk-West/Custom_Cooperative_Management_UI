@@ -75,12 +75,10 @@ export const NAV_ITEMS: NavItem[] = [
     // endpoint and no list/read endpoint exists for anyone yet, so this
     // nav item — and (app)/financial-records/page.tsx — stays limited
     // to a create form for just these two roles.
-    roles: ["admin", "developer_superadmin"],
+    roles: ["admin", "supervisor", "president", "developer_superadmin", "onward_superadmin"],
     children: [
       { label: "Record Entry", href: "/financial-records", roles: ["admin", "developer_superadmin"] },
-      // Transaction browsing is intentionally withheld until a society-scoped,
-      // server-paginated GET endpoint exists. The API currently exposes writes,
-      // summaries, and exports only.
+      { label: "View All Financial Transactions", href: "/financial-records/transactions", roles: ["admin", "supervisor", "president", "developer_superadmin", "onward_superadmin"] },
     ],
   },
   {
@@ -89,10 +87,11 @@ export const NAV_ITEMS: NavItem[] = [
     // Workbook validation/import is available to Admin and superadmins.
     roles: ["admin", "developer_superadmin", "onward_superadmin", "supervisor"],
     children: [
-      { label: "Validate workbook", href: "/monthly-import", roles: ["admin", "developer_superadmin", "onward_superadmin"] },
-      { label: "Schedule", href: "/monthly-import/schedule", roles: ["supervisor", "developer_superadmin", "onward_superadmin"] },
+      { label: "Schedule", href: "/monthly-import/schedule", roles: ["admin", "supervisor", "developer_superadmin", "onward_superadmin"] },
     ],
   },
+  { label: "Loans", href: "/loans", roles: ["admin", "supervisor", "president", "developer_superadmin", "onward_superadmin"] },
+  { label: "Reports", href: "/reports", roles: ["admin", "supervisor", "president", "developer_superadmin", "onward_superadmin"] },
   {
     label: "PIN Reset Requests",
     href: "/pin-resets",

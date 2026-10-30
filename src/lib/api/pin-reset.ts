@@ -34,6 +34,8 @@ export interface PinResetRequestData {
   approvedByUserId: string | null;
   approvedAtUtc: string | null;
   completedAtUtc: string | null;
+  rejectedByUserId?: string | null;
+  rejectedAtUtc?: string | null;
 }
 
 export interface PinResetRequestPageData {
@@ -56,6 +58,12 @@ export function requestPinReset() {
   );
 }
 
+/** Public, non-enumerating request from the sign-in screen. The API returns
+ * the same success response for all identifiers and never locks accounts. */
+export function requestPublicPinReset(emailOrPhoneNumber: string) {
+  return apiPost<ApiEnvelope<null>>("/api/v1/auth/pin-reset/request", { emailOrPhoneNumber });
+}
+
 /** GET /api/v1/pin-reset-requests — Supervisor, President, Developer
  * Superadmin, Onward Superadmin. */
 export function listPendingPinResets(pageNumber = 1, pageSize = 20) {
@@ -68,6 +76,16 @@ export function listPendingPinResets(pageNumber = 1, pageSize = 20) {
 export function approvePinReset(requestId: string) {
   return apiPost<ApiEnvelope<PinResetApprovalData>>(
     `/api/v1/pin-reset-requests/${requestId}/approve`
+  );
+}
+
+export function rejectPinReset(requestId: string) {
+  return apiPost<ApiEnvelope<null>>(`/api/v1/pin-reset-requests/${requestId}/reject`);
+}
+
+export function listPinResetHistory(pageNumber = 1, pageSize = 20) {
+  return apiGet<ApiEnvelope<PinResetRequestPageData>>(
+    `/api/v1/pin-reset-requests/history?pageNumber=${pageNumber}&pageSize=${pageSize}`
   );
 }
 

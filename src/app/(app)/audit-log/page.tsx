@@ -20,6 +20,7 @@ import { listSocieties, type SocietySummary } from "@/lib/api/societies";
 import { readSessionInfo } from "@/lib/session";
 import { getMockSession } from "@/lib/mock-session";
 import { Pagination } from "@/components/ui/Pagination";
+import { usePageSize } from "@/lib/use-page-size";
 
 const DEFAULT_PAGE_SIZE = 25;
 
@@ -62,7 +63,7 @@ function DeveloperAuditLogView() {
   const [toDate, setToDate] = useState("");
 
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [pageSize, setPageSize] = usePageSize(DEFAULT_PAGE_SIZE);
   const [items, setItems] = useState<AuditLogEntryData[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -269,7 +270,7 @@ function OnwardAuditLogView() {
   const [toDate, setToDate] = useState("");
 
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [pageSize, setPageSize] = usePageSize(DEFAULT_PAGE_SIZE);
   const [items, setItems] = useState<OnwardAuditLogEntryData[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);

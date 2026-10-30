@@ -12,6 +12,7 @@ export interface MonthlyFinancialImportSchedule {
   windowStartDay: number | null;
   windowEndDay: number | null;
   repeatMonthly: boolean;
+  enabled: boolean;
   duePeriods: MonthlyFinancialDuePeriod[];
 }
 
@@ -22,6 +23,6 @@ export function getMonthlyFinancialImportSchedule(societyId: string) {
   return apiGet<ApiEnvelope<MonthlyFinancialImportSchedule>>(path(societyId));
 }
 
-export function saveMonthlyFinancialImportSchedule(societyId: string, windowStartDay: number, windowEndDay: number, repeatMonthly: boolean) {
-  return apiPut<ApiEnvelope<MonthlyFinancialImportSchedule>>(path(societyId), { windowStartDay, windowEndDay, repeatMonthly });
+export function saveMonthlyFinancialImportSchedule(societyId: string, windowStartDay: number, windowEndDay: number, repeatMonthly: boolean, enabled: boolean) {
+  return apiPut<ApiEnvelope<MonthlyFinancialImportSchedule>>(path(societyId), { windowStartDay, windowEndDay, repeatMonthly, enabled });
 }

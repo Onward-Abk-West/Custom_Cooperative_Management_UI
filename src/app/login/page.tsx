@@ -13,7 +13,8 @@ import {
   authenticateFirstTimeMember,
   completeFirstTimePinSetup,
 } from "@/lib/api/first-time-auth";
-import { verifyPinReset, completePinReset } from "@/lib/api/pin-reset";
+import { verifyPinReset, completePinReset, requestPublicPinReset } from "@/lib/api/pin-reset";
+import { confirmAction, showError, showSuccess } from "@/lib/feedback";
 
 /**
  * The single, dynamic sign-in entry point. A member only ever has to
@@ -309,6 +310,22 @@ export default function LoginPage() {
     }
   }
 
+  async function handleForgotPin() {
+    if (!identifier.trim() || submitting) return;
+    const confirmed = await confirmAction("Request a PIN reset?", "Your request will be sent to your society administrator for review.", "Submit request");
+    if (!confirmed) return;
+    setSubmitting(true); setError(null);
+    try {
+      const response = await requestPublicPinReset(identifier.trim());
+      if (!response.success) throw new Error(response.message || "The request could not be submitted.");
+      await showSuccess("PIN reset request submitted", "Please contact your society administrator to complete your PIN reset. Once approved, you will need to set a new PIN before accessing your account.");
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Could not reach the server.";
+      setError(message);
+      await showError("Request not submitted", message);
+    } finally { setSubmitting(false); }
+  }
+
   const backToIdentify = (
     <p className="mt-6 text-center text-xs text-brand-ink/50">
       Not you?{" "}
@@ -566,7 +583,10 @@ export default function LoginPage() {
             {submitting ? "Signing in…" : "Log in"}
           </Button>
         </form>
-        {backToIdentify}
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs">
+          <span className="text-brand-ink/50">Not you?</span><button type="button" onClick={resetToIdentify} className="font-medium text-brand-gold-dark hover:underline">Start over</button>
+          <button type="button" onClick={handleForgotPin} disabled={submitting} className="font-semibold text-brand-green-deep hover:underline disabled:opacity-50">{submitting ? "Submitting…" : "Forgotten PIN?"}</button>
+        </div>
       </AuthCard>
     );
   }
@@ -612,6 +632,7 @@ export default function LoginPage() {
           {submitting ? "Checking…" : "Continue"}
         </Button>
       </form>
+      {identifier.trim() && <button type="button" onClick={handleForgotPin} disabled={submitting} className="mt-4 w-full text-center text-sm font-semibold text-brand-green-deep hover:underline disabled:opacity-50">Forgotten PIN?</button>}
     </AuthCard>
   );
 }

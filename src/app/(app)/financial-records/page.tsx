@@ -23,6 +23,7 @@ import { readSessionInfo } from "@/lib/session";
 import { useSociety } from "@/lib/society-context";
 import type { Role } from "@/lib/roles";
 import { useMonthlyImportSchedule } from "@/lib/use-monthly-import-schedule";
+import { confirmAction, showError, showSuccess } from "@/lib/feedback";
 
 /**
  * "Financial Records" (see src/lib/roles.ts's NAV_ITEMS) — recording a
@@ -228,6 +229,7 @@ function TransactionForm({
       setError("Select a transaction date.");
       return;
     }
+    if (!await confirmAction("Record this transaction?", `Record ${category} for ₦${parsedAmount.toLocaleString()} on ${transactionDate}?`, "Record transaction")) return;
     setSubmitting(true);
     try {
       const response = await create(memberId, category, parsedAmount, transactionDate, referenceNumber, paymentMethod);
@@ -236,17 +238,15 @@ function TransactionForm({
         return;
       }
       setCreated(response.data);
+      await showSuccess("Transaction recorded", `${category} · ₦${parsedAmount.toLocaleString()} · ${transactionDate}`);
       setMemberId("");
       setAmount("");
       setTransactionDate("");
       setReferenceNumber("");
       setPaymentMethod("");
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message || "The transaction could not be recorded."
-          : "Could not reach the server."
-      );
+      const message = err instanceof ApiError ? err.message || "The transaction could not be recorded." : "Could not reach the server.";
+      setError(message); await showError("Transaction not recorded", message);
     } finally {
       setSubmitting(false);
     }
@@ -401,6 +401,7 @@ function RecordedTransactionCard({
       setError("Select a transaction date.");
       return;
     }
+    if (!await confirmAction("Update this transaction?", "The existing transaction values will be replaced.", "Save changes")) return;
     setSubmitting(true);
     try {
       const response = await onUpdate(current.id, category, parsedAmount, transactionDate, current.version, referenceNumber, paymentMethod);
@@ -411,12 +412,10 @@ function RecordedTransactionCard({
       setCurrent(response.data);
       setNotice(response.message || "Updated.");
       setEditing(false);
+      await showSuccess("Transaction updated", response.message || "The transaction changes were saved.");
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message || "The transaction could not be updated."
-          : "Could not reach the server."
-      );
+      const message = err instanceof ApiError ? err.message || "The transaction could not be updated." : "Could not reach the server.";
+      setError(message); await showError("Transaction not updated", message);
     } finally {
       setSubmitting(false);
     }
