@@ -80,7 +80,7 @@ export default function FinancialRecordsPage() {
               {duePeriods.length > 0 ? (
                 <p className="mt-1 text-xs text-brand-ink/65">Due: {duePeriods.map((period) => `${period.label} (by ${period.dueDate})`).join(" · ")}</p>
               ) : schedule?.configured ? (
-                <p className="mt-1 text-xs text-brand-ink/65">Upload is due by the {schedule.dueDayOfMonth}{schedule.dueDayOfMonth === 1 ? "st" : schedule.dueDayOfMonth === 2 ? "nd" : schedule.dueDayOfMonth === 3 ? "rd" : "th"} of each month for the previous month.</p>
+                <p className="mt-1 text-xs text-brand-ink/65">Monthly submission window: days {schedule.windowStartDay}–{schedule.windowEndDay} for the previous month{schedule.repeatMonthly ? ", repeating monthly." : ". This is a one-time schedule."}</p>
               ) : (
                 <p className="mt-1 text-xs text-brand-ink/65">The recurring import schedule has not been configured for this society yet.</p>
               )}

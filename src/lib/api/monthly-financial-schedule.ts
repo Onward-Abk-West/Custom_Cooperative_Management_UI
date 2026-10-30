@@ -9,7 +9,9 @@ export interface MonthlyFinancialDuePeriod {
 
 export interface MonthlyFinancialImportSchedule {
   configured: boolean;
-  dueDayOfMonth: number | null;
+  windowStartDay: number | null;
+  windowEndDay: number | null;
+  repeatMonthly: boolean;
   duePeriods: MonthlyFinancialDuePeriod[];
 }
 
@@ -20,6 +22,6 @@ export function getMonthlyFinancialImportSchedule(societyId: string) {
   return apiGet<ApiEnvelope<MonthlyFinancialImportSchedule>>(path(societyId));
 }
 
-export function saveMonthlyFinancialImportSchedule(societyId: string, dueDayOfMonth: number) {
-  return apiPut<ApiEnvelope<MonthlyFinancialImportSchedule>>(path(societyId), { dueDayOfMonth });
+export function saveMonthlyFinancialImportSchedule(societyId: string, windowStartDay: number, windowEndDay: number, repeatMonthly: boolean) {
+  return apiPut<ApiEnvelope<MonthlyFinancialImportSchedule>>(path(societyId), { windowStartDay, windowEndDay, repeatMonthly });
 }

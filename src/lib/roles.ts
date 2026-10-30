@@ -85,8 +85,8 @@ export const NAV_ITEMS: NavItem[] = [
   {
     label: "Monthly Import",
     href: "/monthly-import",
-    // MonthlyFinancialImportsController allows Admin and either superadmin.
-    roles: ["admin", "developer_superadmin", "onward_superadmin"],
+    // Import is available to Admin and superadmins; schedule configuration also supports Supervisor.
+    roles: ["admin", "supervisor", "developer_superadmin", "onward_superadmin"],
   },
   {
     label: "PIN Reset Requests",
