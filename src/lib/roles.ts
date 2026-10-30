@@ -85,8 +85,14 @@ export const NAV_ITEMS: NavItem[] = [
   {
     label: "Monthly Import",
     href: "/monthly-import",
-    // Import is available to Admin and superadmins; schedule configuration also supports Supervisor.
-    roles: ["admin", "supervisor", "developer_superadmin", "onward_superadmin"],
+    // Workbook validation/import is available to Admin and superadmins.
+    roles: ["admin", "developer_superadmin", "onward_superadmin"],
+  },
+  {
+    label: "Monthly Upload Schedule",
+    href: "/monthly-import/schedule",
+    // Supervisors configure their society; superadmins can configure a selected society.
+    roles: ["supervisor", "developer_superadmin", "onward_superadmin"],
   },
   {
     label: "PIN Reset Requests",
