@@ -93,6 +93,7 @@ export const NAV_ITEMS: NavItem[] = [
       { label: "Schedule", href: "/monthly-import/schedule", roles: ["supervisor", "developer_superadmin", "onward_superadmin"] },
     ],
   },
+  { label: "Loans", href: "/loans", roles: ["member", "admin", "supervisor", "president", "developer_superadmin", "onward_superadmin"] },
   {
     label: "PIN Reset Requests",
     href: "/pin-resets",

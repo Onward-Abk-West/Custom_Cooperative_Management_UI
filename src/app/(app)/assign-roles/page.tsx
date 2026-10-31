@@ -29,18 +29,12 @@ import {
 import { readSessionInfo } from "@/lib/session";
 import { useSociety } from "@/lib/society-context";
 import { isSuperadmin, type Role } from "@/lib/roles";
+import { confirmAction } from "@/lib/feedback";
 
 const MAX_PAGE_SIZE = 100;
 
 type RoleKind = "Supervisor" | "President";
 type AssignableRole = RoleKind | "Admin";
-
-interface ConfirmState {
-  userId: string;
-  roleKind: RoleKind;
-  reason: string;
-  label: string;
-}
 
 interface Warning {
   id: string;
@@ -138,12 +132,10 @@ function AssignRolesTable({ societyId, role }: { societyId: string; role: Role }
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<Warning[]>([]);
-  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [actingKey, setActingKey] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, AssignableRole | "">>({});
 
   useEffect(() => {
-    setConfirmState(null);
     setError(null);
     setNotice(null);
   }, [societyId]);
@@ -224,10 +216,18 @@ function AssignRolesTable({ societyId, role }: { societyId: string; role: Role }
         return;
       }
       if (isConfirmationRequired(response.data)) {
-        setConfirmState({ userId: member.userId, roleKind, reason: response.data.reason, label: memberLabel(member) });
+        if (confirm) {
+          setError(`The ${roleKind} assignment still requires confirmation. Refresh the page and try again.`);
+          return;
+        }
+        const accepted = await confirmAction(
+          `Replace current ${roleKind}?`,
+          `This will replace the current ${roleKind} with ${memberLabel(member)}.`,
+          "Confirm replacement"
+        );
+        if (accepted) await handleAssign(member, roleKind, true);
         return;
       }
-      setConfirmState(null);
       setNotice(response.message || `${roleKind} assigned to ${memberLabel(member)}.`);
       if (member.roles.includes("Admin")) {
         await autoRevokeAdminFor(member);
@@ -328,8 +328,6 @@ function AssignRolesTable({ societyId, role }: { societyId: string; role: Role }
     }
   }
 
-  const confirmMember = confirmState ? roster.find((m) => m.userId === confirmState.userId) ?? null : null;
-
   return (
     <div className="flex flex-col gap-4">
       {warnings.map((warning) => (
@@ -347,30 +345,6 @@ function AssignRolesTable({ societyId, role }: { societyId: string; role: Role }
           </button>
         </div>
       ))}
-
-      {confirmState && confirmMember && (
-        <div className="rounded-xl border border-amber-400/50 bg-amber-50 p-4 text-sm text-amber-900">
-          <p className="font-semibold">
-            Confirm replacing {confirmState.roleKind} ({confirmState.reason})
-          </p>
-          <p className="mt-1">
-            This will replace whoever currently holds {confirmState.roleKind} with{" "}
-            {confirmState.label}.
-          </p>
-          <div className="mt-3 flex gap-2">
-            <Button
-              type="button"
-              disabled={!!actingKey}
-              onClick={() => handleAssign(confirmMember, confirmState.roleKind, true)}
-            >
-              {actingKey ? "Confirming…" : "Confirm replacement"}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => setConfirmState(null)}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
 
       {notice && <p className="text-sm text-brand-green">{notice}</p>}
       {error && (
