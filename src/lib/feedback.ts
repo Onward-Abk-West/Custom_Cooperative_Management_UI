@@ -5,6 +5,8 @@ const base = {
   color: "var(--brand-ink)",
   confirmButtonColor: "var(--brand-green)",
   buttonsStyling: true,
+  showClass: { popup: "swal2-show" },
+  hideClass: { popup: "swal2-hide" },
 };
 
 export function showSuccess(title: string, text: string) {

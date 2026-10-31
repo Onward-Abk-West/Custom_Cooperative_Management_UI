@@ -53,6 +53,8 @@ export function isSuperadmin(role: Role): boolean {
 export interface NavItem {
   label: string;
   href: string;
+  /** Optional icon key for menu items that share the same route. */
+  iconHref?: string;
   /** "all" renders for every role; otherwise an explicit allow-list. */
   roles: Role[] | "all";
   children?: NavItem[];
@@ -89,11 +91,12 @@ export const NAV_ITEMS: NavItem[] = [
     // Workbook validation/import is available to Admin and superadmins.
     roles: ["admin", "developer_superadmin", "onward_superadmin", "supervisor"],
     children: [
-      { label: "Validate workbook", href: "/monthly-import", roles: ["admin", "developer_superadmin", "onward_superadmin"] },
-      { label: "Schedule", href: "/monthly-import/schedule", roles: ["supervisor", "developer_superadmin", "onward_superadmin"] },
+      { label: "Monthly Import", href: "/monthly-import", iconHref: "/monthly-transaction-import", roles: ["admin", "developer_superadmin", "onward_superadmin"] },
+      { label: "Schedule", href: "/monthly-import/schedule", roles: ["admin", "supervisor", "developer_superadmin", "onward_superadmin"] },
     ],
   },
   { label: "Loans", href: "/loans", roles: ["member", "admin", "supervisor", "president", "developer_superadmin", "onward_superadmin"] },
+  { label: "Reports", href: "/reports", roles: ["admin", "supervisor", "president", "developer_superadmin", "onward_superadmin"] },
   {
     label: "PIN Reset Requests",
     href: "/pin-resets",

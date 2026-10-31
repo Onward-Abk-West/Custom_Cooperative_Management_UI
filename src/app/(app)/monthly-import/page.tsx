@@ -18,6 +18,7 @@ import { readSessionInfo } from "@/lib/session";
 import { useSociety } from "@/lib/society-context";
 import { isSuperadmin, type Role } from "@/lib/roles";
 import { useMonthlyImportSchedule } from "@/lib/use-monthly-import-schedule";
+import { confirmAction, showError, showSuccess } from "@/lib/feedback";
 
 function saveDownload(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -67,6 +68,7 @@ export default function MonthlyImportPage() {
   const [file, setFile] = useState<File | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [periodMonth, setPeriodMonth] = useState("");
   const [preview, setPreview] = useState<MonthlyImportPreviewData | null>(null);
   const [result, setResult] = useState<MonthlyImportExecutionData | null>(null);
   const [periodCompleted, setPeriodCompleted] = useState(false);
@@ -90,7 +92,8 @@ export default function MonthlyImportPage() {
     if (!nextDue) return;
     if (!startDate) setStartDate(nextDue.startDate);
     if (!endDate) setEndDate(nextDue.endDate);
-  }, [schedule, startDate, endDate]);
+    if (!periodMonth) setPeriodMonth(nextDue.startDate.slice(0, 7));
+  }, [schedule, startDate, endDate, periodMonth]);
 
   async function downloadTemplate() {
     if (!societyId) return;
@@ -123,6 +126,8 @@ export default function MonthlyImportPage() {
 
   async function confirmAndImport() {
     if (!preview?.previewId || !preview.periodId || !preview.confirmationToken) return;
+    const confirmed = await confirmAction("Import this validated workbook?", "This writes the reviewed transactions for the selected period and cannot be undone from this screen.", "Confirm import");
+    if (!confirmed) return;
     setBusy("import"); setError(null); setNotice(null);
     try {
       await confirmMonthlyFinancialImport(societyId, preview.previewId, preview.confirmationToken);
@@ -130,7 +135,8 @@ export default function MonthlyImportPage() {
       if (!imported.success) throw new Error(imported.code || "Import was not completed.");
       setResult(imported);
       setNotice("Import completed successfully.");
-    } catch (err) { setError(messageFor(err, err instanceof Error ? err.message : "Could not complete this import.")); }
+      await showSuccess("Import complete", `${imported.created} created, ${imported.updated} updated, ${imported.skipped} skipped.`);
+    } catch (err) { const message = messageFor(err, err instanceof Error ? err.message : "Could not complete this import."); setError(message); await showError("Import failed", message); }
     finally { setBusy(null); }
   }
 
@@ -186,6 +192,16 @@ export default function MonthlyImportPage() {
 
       <form onSubmit={handlePreview} className="max-w-3xl rounded-2xl border border-brand-line bg-surface-card p-5">
         <h2 className="font-heading text-lg font-bold text-heading">Validate a monthly workbook</h2>
+        <label htmlFor="monthly-period-month" className="mt-3 block text-sm font-semibold text-heading">Reporting month</label>
+        <input id="monthly-period-month" type="month" value={periodMonth} onChange={(event) => {
+          const month = event.target.value;
+          setPeriodMonth(month);
+          if (!month) return;
+          const [year, monthNumber] = month.split("-").map(Number);
+          const lastDayNumber = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+          setStartDate(`${month}-01`);
+          setEndDate(`${month}-${String(lastDayNumber).padStart(2, "0")}`);
+        }} disabled={periodReserved} className="mt-1 w-full max-w-xs rounded-xl border border-brand-line bg-transparent px-3 py-2 text-sm text-brand-ink" />
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <Input id="monthly-start" label="Period start date" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} required disabled={periodReserved} />
           <Input id="monthly-end" label="Period end date" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} required disabled={periodReserved} />

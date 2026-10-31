@@ -13,6 +13,10 @@ import { readSessionInfo } from "@/lib/session";
 import { isSuperadmin, type Role } from "@/lib/roles";
 import { useSociety } from "@/lib/society-context";
 import { usePendingPinResetCount } from "@/lib/use-pending-pin-resets";
+import { listFinancialTransactions, type FinancialTransactionListItem } from "@/lib/api/financial-transactions";
+import { Pagination } from "@/components/ui/Pagination";
+import { usePageSize } from "@/lib/use-page-size";
+import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "@/components/ui/Table";
 
 const SAVINGS_CATEGORIES = new Set([
   "Savings", "Car Loan Savings", "B. Loan Savings", "Okada Loan Savings",
@@ -138,9 +142,9 @@ export function DashboardClient() {
 
     <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard label="Total savings" money={summary ? totals : undefined} value={summary ? undefined : loading ? "Loading…" : "N/A"} note="Savings categories recorded to date" tone="green" accent="var(--stat-green)" valueColor="var(--stat-green)" />
-      <StatCard label="Loans outstanding" value="N/A" note="Loan balance data is not available from the backend" tone="red" accent="var(--stat-red)" valueColor="var(--stat-red)" />
+      <StatCard label="Loans outstanding" money={summary ? summary.loansOutstanding ?? 0 : undefined} value={summary ? undefined : loading ? "Loading…" : "N/A"} note={summary ? `${summary.activeLoanCount ?? 0} active loans` : "Loan balance data is unavailable"} tone="red" accent="var(--stat-red)" valueColor="var(--stat-red)" />
       <StatCard label="Total members" value={memberCount === null ? (loading ? "Loading…" : "N/A") : memberCount.toLocaleString()} note="Users with the Member role in this society" tone="blue" accent="var(--stat-blue)" valueColor="var(--stat-blue)" />
-      <StatCard label="Repayment rate" value="N/A" note="Repayment data is not available from the backend" tone="gold" accent="var(--stat-gold)" valueColor="var(--stat-gold)" />
+      <StatCard label="Repayment rate" value={summary?.repaymentRate == null ? (summary ? "N/A" : loading ? "Loading…" : "N/A") : `${summary.repaymentRate}%`} note={summary?.repaymentRate == null ? "No disbursed loans to calculate a rate" : "Repaid amount against all disbursed loans"} tone="gold" accent="var(--stat-gold)" valueColor="var(--stat-gold)" />
     </div>
 
     {summary && <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
@@ -161,6 +165,39 @@ export function DashboardClient() {
       </ChartCard>
     </section>}
 
+    <DashboardTransactionHistory role={role} societyId={societyId} />
+
     {!summary && loading && <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Loading dashboard data">{[0, 1, 2, 3].map((item) => <div key={item} className="h-36 animate-pulse rounded-2xl border border-brand-line bg-surface-card" />)}</div>}
   </div>;
+}
+
+function DashboardTransactionHistory({ role, societyId }: { role: Role; societyId: string }) {
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = usePageSize(10);
+  const [items, setItems] = useState<FinancialTransactionListItem[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => { setPageNumber(1); }, [societyId]);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true); setError(null);
+    listFinancialTransactions(role, societyId, {}, pageNumber, pageSize)
+      .then((response) => {
+        if (cancelled) return;
+        if (!response.success || !response.data) throw new Error(response.message || "Transaction history is unavailable.");
+        setItems(response.data.items); setTotalCount(response.data.totalCount); setTotalPages(response.data.totalPages);
+      })
+      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : "Transaction history is unavailable."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [role, societyId, pageNumber, pageSize]);
+
+  return <section className="min-w-0 rounded-2xl bg-surface-card p-4 sm:p-5">
+    <header className="mb-4 flex flex-wrap items-end justify-between gap-2"><div><h2 className="font-heading text-lg font-bold text-heading">Transaction history</h2><p className="mt-1 text-xs text-brand-ink/55">{totalCount.toLocaleString()} recorded transactions · newest first</p></div></header>
+    {error ? <p role="alert" className="rounded-xl bg-status-bad/10 p-3 text-sm text-status-bad">{error}</p> : loading ? <div className="animate-pulse p-4 text-sm text-brand-ink/55">Loading transaction history…</div> : items.length === 0 ? <p className="rounded-xl bg-brand-line/10 p-4 text-sm text-brand-ink/55">No transactions have been recorded for this society.</p> : <Table borderless className="min-w-[650px]"><TableHead className="border-b border-brand-line/70 bg-transparent"><TableRow><TableHeaderCell>Date</TableHeaderCell><TableHeaderCell>Member</TableHeaderCell><TableHeaderCell>Category</TableHeaderCell><TableHeaderCell className="text-right">Amount</TableHeaderCell><TableHeaderCell>Reference</TableHeaderCell></TableRow></TableHead><TableBody>{items.map((item) => <TableRow key={item.id}><TableCell className="whitespace-nowrap">{item.transactionDate}</TableCell><TableCell>{item.memberName}{item.membershipNumber && <span className="ml-2 text-xs text-brand-ink/50">{item.membershipNumber}</span>}</TableCell><TableCell>{item.category}</TableCell><TableCell className="text-right font-semibold tabular-nums">₦{item.amount.toLocaleString()}</TableCell><TableCell>{item.referenceNumber ?? "—"}</TableCell></TableRow>)}</TableBody></Table>}
+    {!error && <div className="mt-4"><Pagination pageNumber={pageNumber} pageSize={pageSize} totalCount={totalCount} totalPages={totalPages} onPageChange={setPageNumber} onPageSizeChange={(size) => { setPageSize(size); setPageNumber(1); }} /></div>}
+  </section>;
 }

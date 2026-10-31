@@ -24,6 +24,8 @@ import { readSessionInfo } from "@/lib/session";
 import { useSociety } from "@/lib/society-context";
 import { isSuperadmin, type Role } from "@/lib/roles";
 import { Pagination } from "@/components/ui/Pagination";
+import { usePageSize } from "@/lib/use-page-size";
+import { showError, showSuccess } from "@/lib/feedback";
 
 const DEFAULT_PAGE_SIZE = 25;
 
@@ -49,6 +51,8 @@ export default function MembersPage() {
   const [role, setRole] = useState<Role | null>(null);
   const [ownSocietyId, setOwnSocietyId] = useState<string>("");
   const [filterText, setFilterText] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
     const info = readSessionInfo();
@@ -71,7 +75,10 @@ export default function MembersPage() {
             Everyone in this society — Members, Admins, Supervisor and President alike.
           </p>
         </div>
-        <MemberFilterBox value={filterText} onChange={setFilterText} />
+        <div className="flex flex-wrap items-end gap-3">
+          <MemberFilterBox value={filterText} onChange={setFilterText} />
+          {(role === "supervisor" || role === "developer_superadmin") && societyId && <Button type="button" onClick={() => setCreateOpen(true)}>+ Create Member</Button>}
+        </div>
       </div>
 
       {!societyId ? (
@@ -81,14 +88,16 @@ export default function MembersPage() {
             : "Your society could not be determined from your session — try signing in again."}
         </div>
       ) : (
-        <MembersRoster societyId={societyId} filterText={filterText} />
+        <MembersRoster societyId={societyId} filterText={filterText} refreshKey={refreshKey} />
       )}
 
-      {role === "supervisor" && <SupervisorCreateMemberCard />}
-
-      {role === "developer_superadmin" && societyId && (
-        <DeveloperCreateMemberCard societyId={societyId} />
-      )}
+      {createOpen && <MemberCreationDialog title="Create member" onClose={() => setCreateOpen(false)}>
+        {role === "supervisor"
+          ? <SupervisorCreateMemberCard onCreated={() => setRefreshKey((key) => key + 1)} onClose={() => setCreateOpen(false)} />
+          : role === "developer_superadmin" && societyId
+            ? <DeveloperCreateMemberCard societyId={societyId} onCreated={() => setRefreshKey((key) => key + 1)} onClose={() => setCreateOpen(false)} />
+            : null}
+      </MemberCreationDialog>}
     </div>
   );
 }
@@ -121,12 +130,14 @@ function MemberFilterBox({
 function MembersRoster({
   societyId,
   filterText,
+  refreshKey,
 }: {
   societyId: string;
   filterText: string;
+  refreshKey: number;
 }) {
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [pageSize, setPageSize] = usePageSize(DEFAULT_PAGE_SIZE);
   const [items, setItems] = useState<SocietyMemberSummary[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -171,7 +182,7 @@ function MembersRoster({
     return () => {
       cancelled = true;
     };
-  }, [societyId, pageNumber, pageSize, search]);
+  }, [societyId, pageNumber, pageSize, search, refreshKey]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -233,7 +244,21 @@ function MembersRoster({
   );
 }
 
-function DeveloperCreateMemberCard({ societyId }: { societyId: string }) {
+function MemberCreationDialog({ children, title, onClose }: { children: React.ReactNode; title: string; onClose: () => void }) {
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) { if (event.key === "Escape") onClose(); }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-3 sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section role="dialog" aria-modal="true" aria-labelledby="member-create-title" className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-surface-card p-5 shadow-2xl sm:p-7">
+      <div className="mb-4 flex items-start justify-between gap-3"><div><h2 id="member-create-title" className="font-heading text-xl font-bold text-heading">{title}</h2><p className="mt-1 text-sm text-brand-ink/60">Add a member to the selected society.</p></div><button type="button" onClick={onClose} aria-label="Close dialog" className="rounded-full px-2 py-1 text-xl text-brand-ink/60 hover:bg-brand-line/30">×</button></div>
+      {children}
+    </section>
+  </div>;
+}
+
+function DeveloperCreateMemberCard({ societyId, onCreated, onClose }: { societyId: string; onCreated: () => void; onClose: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -248,27 +273,29 @@ function DeveloperCreateMemberCard({ societyId }: { societyId: string }) {
     try {
       const response = await createMemberAsDeveloperSuperadmin(societyId, name, email, phoneNumber);
       if (!response.success || !response.data) {
-        setError(response.message || "The member could not be created.");
+        const message = response.message || "The member could not be created.";
+        setError(message);
+        await showError("Member not created", message);
         return;
       }
       setCreated(response.data);
+      onCreated();
+      await showSuccess("Member created", `Temporary credential (copy and share securely): ${response.data.temporaryCredential}`);
+      onClose();
       setName("");
       setEmail("");
       setPhoneNumber("");
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message || "The member could not be created." : "Could not reach the server."
-      );
+      const message = err instanceof ApiError ? err.message || "The member could not be created." : "Could not reach the server.";
+      setError(message);
+      await showError("Member not created", message);
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <section className="max-w-lg rounded-2xl border border-brand-line bg-surface-card p-5">
-      <h2 className="font-heading text-lg font-bold text-heading">
-        Create member in the selected society
-      </h2>
+    <div>
       <p className="mt-1 text-sm text-brand-ink/60">
         Creates into whichever society the sidebar switcher currently points at. Issues a
         temporary credential the new member exchanges for their own PIN at{" "}
@@ -291,7 +318,7 @@ function DeveloperCreateMemberCard({ societyId }: { societyId: string }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} noValidate className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+      <form onSubmit={handleSubmit} noValidate className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end">
         <div className="flex-1">
           <Input id="dev-member-name" label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" />
         </div>
@@ -301,8 +328,8 @@ function DeveloperCreateMemberCard({ societyId }: { societyId: string }) {
         <div className="flex-1">
           <Input id="dev-member-phone" label="Phone number" type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="+234…" />
         </div>
-        <Button type="submit" disabled={submitting}>
-          {submitting ? "Creating…" : "Create"}
+        <Button type="submit" disabled={submitting || Boolean(created)}>
+          {submitting ? "Creating…" : created ? "Created" : "Create"}
         </Button>
       </form>
       {error && (
@@ -310,11 +337,11 @@ function DeveloperCreateMemberCard({ societyId }: { societyId: string }) {
           {error}
         </p>
       )}
-    </section>
+    </div>
   );
 }
 
-function SupervisorCreateMemberCard() {
+function SupervisorCreateMemberCard({ onCreated, onClose }: { onCreated: () => void; onClose: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -329,25 +356,29 @@ function SupervisorCreateMemberCard() {
     try {
       const response = await createMemberAsSupervisor(name, email, phoneNumber);
       if (!response.success || !response.data) {
-        setError(response.message || "The member could not be created.");
+        const message = response.message || "The member could not be created.";
+        setError(message);
+        await showError("Member not created", message);
         return;
       }
       setCreated(response.data);
+      onCreated();
+      await showSuccess("Member created", `Temporary credential (copy and share securely): ${response.data.temporaryCredential}`);
+      onClose();
       setName("");
       setEmail("");
       setPhoneNumber("");
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message || "The member could not be created." : "Could not reach the server."
-      );
+      const message = err instanceof ApiError ? err.message || "The member could not be created." : "Could not reach the server.";
+      setError(message);
+      await showError("Member not created", message);
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <section className="max-w-lg rounded-2xl border border-brand-line bg-surface-card p-5">
-      <h2 className="font-heading text-lg font-bold text-heading">Create member in your society</h2>
+    <div>
       {created && (
         <div className="mt-4 rounded-xl border border-brand-gold/40 bg-brand-gold/10 p-4 text-sm">
           <p className="font-semibold text-brand-ink">
@@ -361,7 +392,7 @@ function SupervisorCreateMemberCard() {
           </p>
         </div>
       )}
-      <form onSubmit={handleSubmit} noValidate className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+      <form onSubmit={handleSubmit} noValidate className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end">
         <div className="flex-1">
           <Input id="supervisor-member-name" label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" />
         </div>
@@ -371,8 +402,8 @@ function SupervisorCreateMemberCard() {
         <div className="flex-1">
           <Input id="supervisor-member-phone" label="Phone number" type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="+234…" />
         </div>
-        <Button type="submit" disabled={submitting}>
-          {submitting ? "Creating…" : "Create"}
+        <Button type="submit" disabled={submitting || Boolean(created)}>
+          {submitting ? "Creating…" : created ? "Created" : "Create"}
         </Button>
       </form>
       {error && (
@@ -380,6 +411,6 @@ function SupervisorCreateMemberCard() {
           {error}
         </p>
       )}
-    </section>
+    </div>
   );
 }

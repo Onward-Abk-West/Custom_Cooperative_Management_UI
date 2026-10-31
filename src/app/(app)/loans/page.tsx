@@ -8,6 +8,7 @@ import { listSocietyMembers, type SocietyMemberSummary } from "@/lib/api/society
 import { canManageLoans, createLoan, disburseLoan, getLoanDocument, listLoans, recordLoanRepayment, uploadLoanForm, type LoanItem, type LoanStatus } from "@/lib/api/loans";
 import { readSessionInfo } from "@/lib/session";
 import { useSociety } from "@/lib/society-context";
+import { usePageSize } from "@/lib/use-page-size";
 import type { Role } from "@/lib/roles";
 import { confirmAction, showError, showSuccess } from "@/lib/feedback";
 
@@ -23,7 +24,7 @@ export default function LoansPage() {
   const [ownSocietyId, setOwnSocietyId] = useState("");
   const [rows, setRows] = useState<LoanItem[]>([]);
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pageSize, setPageSize] = usePageSize(PAGE_SIZE);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [filters, setFilters] = useState({ status: "" as LoanStatus | "", startDate: "", endDate: "", memberId: "" });

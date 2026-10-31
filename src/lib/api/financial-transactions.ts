@@ -1,4 +1,5 @@
-import { apiDownload, apiFetch, apiPost, apiPut, type ApiEnvelope, type DownloadedFile } from "@/lib/api-client";
+import { apiDownload, apiFetch, apiGet, apiPost, apiPut, type ApiEnvelope, type DownloadedFile } from "@/lib/api-client";
+import type { Role } from "@/lib/roles";
 
 export const FINANCIAL_CATEGORIES = [
   "Shares", "Savings", "Normal Loan", "Car Loan", "Car Loan Savings",
@@ -14,6 +15,42 @@ export interface CreatedFinancialTransactionData {
   version: number; referenceNumber: string | null; paymentMethod: PaymentMethod | null;
 }
 export interface UpdatedFinancialTransactionData extends CreatedFinancialTransactionData {}
+
+export interface FinancialTransactionListItem extends CreatedFinancialTransactionData {
+  memberName: string;
+  membershipNumber: string | null;
+}
+export interface FinancialTransactionListData {
+  items: FinancialTransactionListItem[];
+  pageNumber: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+}
+export interface FinancialTransactionFilters {
+  startDate?: string;
+  endDate?: string;
+  minimumAmount?: string;
+  maximumAmount?: string;
+  category?: FinancialCategory | "";
+  search?: string;
+}
+
+export function listFinancialTransactions(role: Role, societyId: string, filters: FinancialTransactionFilters, pageNumber: number, pageSize: number) {
+  const params = new URLSearchParams({ pageNumber: String(pageNumber), pageSize: String(pageSize) });
+  if (filters.startDate) params.set("startDate", filters.startDate);
+  if (filters.endDate) params.set("endDate", filters.endDate);
+  if (filters.minimumAmount) params.set("minimumAmount", filters.minimumAmount);
+  if (filters.maximumAmount) params.set("maximumAmount", filters.maximumAmount);
+  if (filters.category) params.set("category", filters.category);
+  if (filters.search?.trim()) params.set("search", filters.search.trim());
+  const path = role === "developer_superadmin"
+    ? `/api/v1/developer-superadmin/societies/${societyId}/financial-records/transactions`
+    : role === "onward_superadmin"
+      ? `/api/v1/onward-superadmin/societies/${societyId}/financial-records/transactions`
+      : "/api/v1/financial-records/transactions";
+  return apiGet<ApiEnvelope<FinancialTransactionListData>>(`${path}?${params.toString()}`);
+}
 
 export interface MonthlyImportPreviewItem {
   rowNumber: number;

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
+import { usePageSize } from "@/lib/use-page-size";
 import { ApiError } from "@/lib/api-client";
 import { listSocieties, type SocietySummary } from "@/lib/api/societies";
 
@@ -26,7 +27,7 @@ const DEFAULT_PAGE_SIZE = 25;
 
 export default function SocietiesPage() {
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [pageSize, setPageSize] = usePageSize(DEFAULT_PAGE_SIZE);
   const [items, setItems] = useState<SocietySummary[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
