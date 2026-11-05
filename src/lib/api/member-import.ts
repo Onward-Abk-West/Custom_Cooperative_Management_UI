@@ -31,15 +31,25 @@ export const MEMBER_IMPORT_WORKBOOK_SPEC = {
   sheetName: "Sheet1",
   headerRow: 2,
   firstDataRow: 3,
-  columnCount: 18,
+  minimumColumnCount: 18,
+  maximumColumnCount: 20,
   identityColumns: ["S/N", "NAME", "MEM NO"],
   financialColumns: FINANCIAL_CATEGORIES,
+  optionalColumns: ["EMAIL", "PHONE NO"],
 } as const;
 
 export interface MemberImportRowErrorData {
   rowNumber: number;
   serialNumber: string | null;
+  membershipNumber?: string | null;
+  memberName?: string | null;
+  errors?: MemberImportFieldErrorData[];
   reasons: string[];
+}
+
+export interface MemberImportFieldErrorData {
+  field: string;
+  message: string;
 }
 
 /** Matches AbkWestCoop.Contracts.Imports.Responses.MemberImportResponseData. */

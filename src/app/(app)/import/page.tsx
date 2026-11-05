@@ -423,7 +423,8 @@ function WorkbookRequirements() {
         <p>
           The file must contain exactly one worksheet named <strong>{spec.sheetName}</strong>, with
           column headers on row {spec.headerRow} and member data from row {spec.firstDataRow}.
-          There must be exactly {spec.columnCount} columns, each header appearing once.
+          Use the 18 required columns below. You may also include the optional EMAIL and PHONE NO
+          columns, for up to {spec.maximumColumnCount} columns total. Each header must appear once.
         </p>
         <div>
           <p className="font-semibold text-heading">Identity columns</p>
@@ -435,6 +436,9 @@ function WorkbookRequirements() {
             {spec.financialColumns.join("  ·  ")}
           </p>
           <p className="mt-1 text-xs text-brand-ink/60">&ldquo;HOUSE HOLD&rdquo; is accepted for Household.</p>
+          <p className="mt-1 text-xs text-brand-ink/60">
+            Optional contact columns: {spec.optionalColumns.join("  · ")}
+          </p>
         </div>
       </div>
     </details>
@@ -527,7 +531,10 @@ function ImportResult({
                 <TableRow>
                   <TableHeaderCell>Row</TableHeaderCell>
                   <TableHeaderCell>S/N</TableHeaderCell>
-                  <TableHeaderCell>Reasons</TableHeaderCell>
+                  <TableHeaderCell>Member</TableHeaderCell>
+                  <TableHeaderCell>Membership no.</TableHeaderCell>
+                  <TableHeaderCell>Field errors</TableHeaderCell>
+                  <TableHeaderCell>Other reasons</TableHeaderCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -536,11 +543,32 @@ function ImportResult({
                     <TableCell className="tabular-nums">{rowError.rowNumber}</TableCell>
                     <TableCell>{rowError.serialNumber || "—"}</TableCell>
                     <TableCell>
-                      <ul className="list-inside list-disc">
-                        {rowError.reasons.map((reason, i) => (
-                          <li key={i}>{reason}</li>
-                        ))}
-                      </ul>
+                      {rowError.memberName || "—"}
+                    </TableCell>
+                    <TableCell>{rowError.membershipNumber || "—"}</TableCell>
+                    <TableCell>
+                      {rowError.errors?.length ? (
+                        <ul className="list-inside list-disc">
+                          {rowError.errors.map((error, i) => (
+                            <li key={`${error.field}-${i}`}>
+                              <span className="font-semibold">{error.field}:</span> {error.message}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {rowError.reasons.length ? (
+                        <ul className="list-inside list-disc">
+                          {rowError.reasons.map((reason, i) => (
+                            <li key={i}>{reason}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
